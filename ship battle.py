@@ -185,8 +185,8 @@ def ship_selected(event):
             selected_ship = 0
 
 
-def player_shot(event):
-    print("shot")
+def player_shoot(event):
+    print("shoot")
 
 
 class Brick:
