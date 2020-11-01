@@ -46,7 +46,7 @@ def place_ship(x, y, x_ship_size, y_ship_size):
                 brick = bricks[g][i]
                 brick.b_type = "field"
                 brick.draw(canvas)
-        print(x, y, x_ship_size, y_ship_size)
+        #print(x, y, x_ship_size, y_ship_size)
         deny = 0
         step = 1
         if x_ship_size < 0 or y_ship_size < 0:
@@ -185,6 +185,10 @@ def ship_selected(event):
             selected_ship = 0
 
 
+def player_shot(event):
+    print("shot")
+
+
 class Brick:
     def __init__(self, x, y, x_dimen, y_dimen, b_type):
         self.x = x
@@ -213,6 +217,16 @@ class Brick:
             cnvs.tag_bind("click" + str(self.x), "<Button-1>", interface_clicked)
             idx = cnvs.index(txt, tk.END)
             cnvs.insert(txt, idx, text)
+        elif self.b_type == "after_start_field":
+            cnvs.create_rectangle(self.x, self.y, self.x + self.x_dimen, self.y + self.y_dimen, fill="cyan",
+                                  outline="white")
+        elif self.b_type == "after_start_ship":
+            cnvs.create_rectangle(self.x, self.y, self.x + self.x_dimen, self.y + self.y_dimen, fill="red",
+                                  outline="white")
+        elif self.b_type == "computer_field":
+            cnvs.create_rectangle(self.x, self.y, self.x + self.x_dimen, self.y + self.y_dimen, fill="cyan",
+                                  outline="white", tags="click" + str(self.x))
+            cnvs.tag_bind("click" + str(self.x), "<Button-1>", player_shot)
         else:
             border_color = ""
             if self.b_type == "field":
@@ -226,7 +240,7 @@ class Brick:
             cnvs.tag_bind("click" + str(self.x), "<B1-Motion>", clicked)
 
 
-def draw_playground(x_fld_size, y_fld_size, field_ctr_x, field_ctr_y, cnvs):
+def draw_playground(x_fld_size, y_fld_size, field_ctr_x, field_ctr_y, cnvs, aditionals=""):
     global x_size
     global y_size
     global bricks
@@ -243,7 +257,7 @@ def draw_playground(x_fld_size, y_fld_size, field_ctr_x, field_ctr_y, cnvs):
                 brick = Brick(x_size * g, y_size * i, x_size, y_size, "sign")
                 brick.draw(cnvs, letter_dict[i - field_ctr_y])
             else:
-                brick = Brick(x_size * g, y_size * i, x_size, y_size, "field")
+                brick = Brick(x_size * g, y_size * i, x_size, y_size, aditionals + "field")
                 brick.draw(cnvs)
             mas.append(brick)
         bricks.append(mas)
@@ -338,14 +352,33 @@ my_field = []
 
 
 def start_game(event):
-    global start_flag, my_field
-    for i in range(len(bricks)):
+    global start_flag, my_field, bricks
+    for i in range(1, len(bricks)):
         mas = []
-        for g in range(len(bricks[i])):
-            mas.append(bricks[g][i].b_type)
+        for g in range(1, len(bricks[i])):
+            mas.append(bricks[i][g].b_type)
         my_field.append(mas)
     canvas.delete("all")
-    print("start")
+    canvas.create_rectangle(0, 0, size_canvas_x, size_canvas_y, fill="white")
+    bricks = []
+    for i in range(field_centering_y, field_size_y + field_centering_y + 1):
+        mas = []
+        for g in range(field_centering_x, field_size_x + field_centering_x + 1):
+            if i == field_centering_y:
+                brick = Brick(x_size * g, y_size * i, x_size, y_size, "sign")
+                text = "..."
+                if g - field_centering_x != 0:
+                    text = g - field_centering_x
+                    brick.draw(canvas, text)
+            elif g == field_centering_x:
+                brick = Brick(x_size * g, y_size * i, x_size, y_size, "sign")
+                brick.draw(canvas, letter_dict[i - field_centering_y])
+            else:
+                brick = Brick(x_size * g, y_size * i, x_size, y_size,
+                              "after_start_" + my_field[i - field_centering_y - 1][g - field_centering_x - 1])
+                brick.draw(canvas)
+            mas.append(brick)
+        bricks.append(mas)
     start_flag = 1
 
 
@@ -380,10 +413,6 @@ while start_flag == 0:
         TK.update()
     time.sleep(0.005)
 
-
-canvas.create_rectangle(0, 0, size_canvas_x, size_canvas_y, fill="white")
-
-
 size_canvas2_x = 450
 size_canvas2_y = 450
 
@@ -397,7 +426,7 @@ TK2.resizable(0, 0)
 TK2.wm_attributes("-topmost", 1)
 canvas2 = Canvas(TK2, width=size_canvas2_x, height=size_canvas2_y, bd=0, highlightthickness=0)
 canvas2.create_rectangle(0, 0, size_canvas_x, size_canvas_y, fill="white")
-draw_playground(field_size_x, field_size_y, field2_centering2_x, field2_centering2_y, canvas2)
+draw_playground(field_size_x, field_size_y, field2_centering2_x, field2_centering2_y, canvas2, aditionals="computer_")
 canvas2.pack()
 TK2.update()
 
