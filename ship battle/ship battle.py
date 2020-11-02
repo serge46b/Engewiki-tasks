@@ -188,10 +188,75 @@ def ship_selected(event):
             selected_ship = 0
 
 
+def check_win():
+    global app_running
+    me_win = 1
+    computer_win = 1
+    for i in range(len(my_field)):
+        for g in range(len(computer_field[i])):
+            my_state = my_field[i][g]
+            computer_state = computer_field[i][g]
+            if my_state == "ship":
+                computer_win = 0
+            if computer_state == "ship":
+                me_win = 0
+    if me_win or computer_win:
+        if me_win:
+            messagebox.showinfo(title="Победа!", message="Вы победили!")
+        elif computer_win:
+            messagebox.showinfo(title="Проигрыш", message="Вы проиграли")
+        app_running = False
+        TK.destroy()
+
+
+def computer_shoot():
+    global bricks2
+    deny = 1
+    while deny == 1:
+        x_brick = randint(1, 8)
+        y_brick = randint(1, 8)
+        state = my_field[x_brick - 1][y_brick - 1]
+        brick = bricks2[x_brick][y_brick]
+        text = ""
+        if state == "field":
+            brick.b_type = "miss"
+            my_field[x_brick - 1][y_brick - 1] = "miss"
+            text = "M"
+            brick.draw(canvas, text)
+            deny = 0
+        elif state == "ship":
+            brick.b_type = "hit"
+            my_field[x_brick - 1][y_brick - 1] = "hit"
+            text = "H"
+            brick.draw(canvas, text)
+            check_win()
+            computer_shoot()
+            deny = 0
+
+
 def player_shoot(event):
+    global bricks
     x_brick = event.x // x_size - field_centering_x
     y_brick = event.y // y_size - field_centering_y
     print("shoot", x_brick, y_brick)
+    state = computer_field[x_brick][y_brick]
+    brick = bricks[y_brick + 1][x_brick + 1]
+    text = ""
+    deny = 1
+    if state == "field":
+        brick.b_type = "miss"
+        computer_field[x_brick][y_brick] = "miss"
+        text = "M"
+        computer_shoot()
+        deny = 0
+    elif state == "ship":
+        brick.b_type = "hit"
+        computer_field[x_brick][y_brick] = "hit"
+        text = "H"
+        deny = 0
+    if deny == 0:
+        brick.draw(canvas2, text)
+        check_win()
 
 
 class Brick:
@@ -232,6 +297,18 @@ class Brick:
             cnvs.create_rectangle(self.x, self.y, self.x + self.x_dimen, self.y + self.y_dimen, fill="cyan",
                                   outline="white", tags="click" + str(self.x))
             cnvs.tag_bind("click" + str(self.x), "<Button-1>", player_shoot)
+        elif self.b_type == "hit":
+            txt = cnvs.create_text(self.x + self.x_dimen // 2, self.y + self.y_dimen // 2,
+                                   font="Arial " + str(font_size),
+                                   fill="yellow")
+            idx = cnvs.index(txt, tk.END)
+            cnvs.insert(txt, idx, text)
+        elif self.b_type == "miss":
+            txt = cnvs.create_text(self.x + self.x_dimen // 2, self.y + self.y_dimen // 2,
+                                   font="Arial " + str(font_size),
+                                   fill="white")
+            idx = cnvs.index(txt, tk.END)
+            cnvs.insert(txt, idx, text)
         else:
             border_color = ""
             if self.b_type == "field":
@@ -430,13 +507,14 @@ my_field = []
 
 
 def start_game(event):
-    global start_flag, my_field, bricks2
-    for i in range(1, len(bricks2)):
+    global start_flag, my_field, bricks2, bricks
+    for i in range(1, len(bricks)):
         mas = []
-        for g in range(1, len(bricks2[i])):
-            mas.append(bricks2[i][g].b_type)
+        for g in range(1, len(bricks[i])):
+            mas.append(bricks[i][g].b_type)
         my_field.append(mas)
     canvas.delete("all")
+    bricks = []
     canvas.create_rectangle(0, 0, size_canvas_x, size_canvas_y, fill="white")
     for i in range(field_centering_y, field_size_y + field_centering_y + 1):
         mas = []
