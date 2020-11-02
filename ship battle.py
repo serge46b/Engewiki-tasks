@@ -1,3 +1,4 @@
+from random import randint
 from tkinter import *
 from tkinter import messagebox
 import tkinter as tk
@@ -24,8 +25,10 @@ x_size = playGround_size_x // field_size_x
 y_size = playGround_size_x // field_size_y
 
 bricks = []
+bricks2 = []
 
 ship_dict = {"2": [0, 0, 0, 0, 2, 0], "3": [0, 0, 0, 0, 2, 0], "4": [0, 0, 0, 0, 1, 0]}
+amount = [ship_dict["4"][4], ship_dict["3"][4], ship_dict["2"][4]]
 selected_ship = 0
 ship_placed = 0
 ship_rotation = 0
@@ -46,7 +49,7 @@ def place_ship(x, y, x_ship_size, y_ship_size):
                 brick = bricks[g][i]
                 brick.b_type = "field"
                 brick.draw(canvas)
-        #print(x, y, x_ship_size, y_ship_size)
+        # print(x, y, x_ship_size, y_ship_size)
         deny = 0
         step = 1
         if x_ship_size < 0 or y_ship_size < 0:
@@ -186,7 +189,9 @@ def ship_selected(event):
 
 
 def player_shoot(event):
-    print("shoot")
+    x_brick = event.x // x_size - field_centering_x
+    y_brick = event.y // y_size - field_centering_y
+    print("shoot", x_brick, y_brick)
 
 
 class Brick:
@@ -226,7 +231,7 @@ class Brick:
         elif self.b_type == "computer_field":
             cnvs.create_rectangle(self.x, self.y, self.x + self.x_dimen, self.y + self.y_dimen, fill="cyan",
                                   outline="white", tags="click" + str(self.x))
-            cnvs.tag_bind("click" + str(self.x), "<Button-1>", player_shot)
+            cnvs.tag_bind("click" + str(self.x), "<Button-1>", player_shoot)
         else:
             border_color = ""
             if self.b_type == "field":
@@ -347,20 +352,92 @@ def on_closing():
         TK.destroy()
 
 
+computer_field = []
+
+
+def generate_computer_playground():
+    global computer_field
+    for i in range(8):
+        mas = []
+        for g in range(8):
+            mas.append("field")
+        computer_field.append(mas)
+
+    while amount[0] + amount[1] + amount[2] > 0:
+        x_brick = randint(1, 8)
+        y_brick = randint(1, 8)
+        ship_rotation = 90 * randint(0, 3)
+        index = amount.index(max(amount))
+        selected_ship = 4 - index
+        # print(selected_ship, x_brick, y_brick, ship_rotation)
+        denied_fields_x = 0
+        denied_fields_y = 0
+        if ship_rotation == 0:
+            denied_fields_y = 0 - selected_ship + 1
+        elif ship_rotation == 90:
+            denied_fields_x = 0 - selected_ship + 1
+        elif ship_rotation == 180:
+            denied_fields_y = selected_ship - 1
+        elif ship_rotation == 270:
+            denied_fields_x = selected_ship - 1
+        # print(denied_fields_x, denied_fields_y)
+        deny = 1
+        if 1 <= x_brick <= field_size_x and 1 <= y_brick <= field_size_y:
+            if denied_fields_x >= 0 and denied_fields_y >= 0:
+                if denied_fields_x < x_brick <= field_size_x and denied_fields_y < y_brick <= field_size_y:
+                    # print("ok", x_brick, y_brick)
+                    deny = 0
+            else:
+                if 1 <= x_brick <= field_size_x + denied_fields_x and 1 <= y_brick <= field_size_y + denied_fields_y:
+                    # print("ok", x_brick, y_brick)
+                    deny = 0
+            if deny == 0:
+                if ship_rotation >= 180:
+                    denied_fields_y += 1
+                    denied_fields_x += 1
+                else:
+                    denied_fields_x -= 1
+                    denied_fields_y -= 1
+                    step = 1
+                    denied_fields_y *= -1
+                    denied_fields_x *= -1
+                    if denied_fields_x < 0 or denied_fields_y < 0:
+                        step = -1
+                    for i in range(x_brick, x_brick + denied_fields_x, step):
+                        for g in range(y_brick, y_brick + denied_fields_y, step):
+                            # print(i, g)
+                            # print(x_brick, y_brick, computer_field[i - 1][g - 1])
+                            if computer_field[g - 1][i - 1] == "ship":
+                                deny = 1
+                    if deny == 0:
+                        amount[index] -= 1
+                        for i in range(x_brick, x_brick + denied_fields_x, step):
+                            for g in range(y_brick, y_brick + denied_fields_y, step):
+                                computer_field[g - 1][i - 1] = "ship"
+                        # print()
+                        for i in range(len(computer_field)):
+                            str = ""
+                            for g in range(len(computer_field[i])):
+                                if computer_field[i][g] == "field":
+                                    str += "F "
+                                else:
+                                    str += "S "
+                            # print(str)
+
+
 start_flag = 0
 my_field = []
 
 
 def start_game(event):
-    global start_flag, my_field, bricks
-    for i in range(1, len(bricks)):
+    global start_flag, my_field, bricks2
+    for i in range(1, len(bricks2)):
         mas = []
-        for g in range(1, len(bricks[i])):
-            mas.append(bricks[i][g].b_type)
+        for g in range(1, len(bricks2[i])):
+            mas.append(bricks2[i][g].b_type)
         my_field.append(mas)
     canvas.delete("all")
     canvas.create_rectangle(0, 0, size_canvas_x, size_canvas_y, fill="white")
-    bricks = []
     for i in range(field_centering_y, field_size_y + field_centering_y + 1):
         mas = []
         for g in range(field_centering_x, field_size_x + field_centering_x + 1):
@@ -378,7 +455,8 @@ def start_game(event):
                               "after_start_" + my_field[i - field_centering_y - 1][g - field_centering_x - 1])
                 brick.draw(canvas)
             mas.append(brick)
-        bricks.append(mas)
+        bricks2.append(mas)
+    generate_computer_playground()
     start_flag = 1
 
 
