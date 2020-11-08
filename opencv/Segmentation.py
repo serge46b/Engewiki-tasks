@@ -1,0 +1,10 @@
+import cv2
+img = cv2.imread("DemoImages/demo_cone.png")
+mask = cv2.inRange(img, (30, 52, 100), (89, 131, 255))
+contours, hierarchy = cv2.findContours(mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
+cv2.imshow("img", img)
+cv2.drawContours(img, contours, -1, (0, 255, 0), 3)
+cv2.imshow("mask", mask)
+cv2.imshow("counturs", img)
+cv2.waitKey(0)
+cv2.destroyAllWindows()
