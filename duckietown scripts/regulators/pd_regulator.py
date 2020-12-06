@@ -5,6 +5,8 @@
 This script allows you to manually control the simulator or Duckiebot
 using the keyboard arrows.
 """
+import copy
+
 import cv2
 from PIL import Image
 import argparse
@@ -88,33 +90,72 @@ def update(dt):
     if key_handler[key.LSHIFT]:
         action *= 1.5
 
-    if key_handler[key.F]:
-        lane_pose = env.get_lane_pos2(env.cur_pos, env.cur_angle)
-        angle_from_straight_in_rads = lane_pose.angle_rad
-        k = -11
-        kd = 150
-        p = 0.7
-        delta = k * (0 - angle_from_straight_in_rads)
-        delta_d = kd * (prev_delta - (0 - angle_from_straight_in_rads))
-        delta += delta_d
-        kp = 0.1
-        p += kp * delta_d
-        action += np.array([p, delta])
-        prev_delta = (0 - angle_from_straight_in_rads)
-        print(angle_from_straight_in_rads)
-
     obs, reward, done, info = env.step(action)
     print("step_count = %s, reward=%.3f" % (env.unwrapped.step_count, reward))
     img = cv2.cvtColor(obs, cv2.COLOR_BGR2RGB)
     img = img[250:, 300:, :]
-    print(img.shape)
-    sample_line = [(340, 230), (145, 0)]
-    sample_line2 = [(340, 120), (195, 0)]
-    cv2.line(img, sample_line[0], sample_line[1], (0, 0, 255), 2)
-    cv2.line(img, sample_line2[0], sample_line2[1], (0, 255, 0), 2)
     mask = cv2.inRange(img, (22, 75, 82), (255, 255, 255))
-    cv2.imshow("img", img)
     cv2.imshow("mask", mask)
+
+    edges = cv2.Canny(mask, 50, 150, apertureSize=5)
+    cv2.imshow("edges", edges)
+    lines = cv2.HoughLines(edges, 4, np.pi / 180, 200)
+    lines_img = copy.deepcopy(img)
+    edge_line_img = copy.deepcopy(img)
+    edge_line = []
+    if lines is not None:
+        for line in range(len(lines)):
+            rho, theta = lines[line][0]
+            a = np.cos(theta)
+            b = np.sin(theta)
+            x0 = a * rho
+            y0 = b * rho
+            x1 = int(x0 + 1000 * (-b))
+            y1 = int(y0 + 1000 * a)
+            x2 = int(x0 - 1000 * (-b))
+            y2 = int(y0 - 1000 * a)
+            if line == 0:
+                cv2.line(edge_line_img, (x1, y1), (x2, y2), (0, 255, 0), 2)
+                edge_line.append([(x1, y1), (x2, y2)])
+            elif line == len(lines) - 1:
+                cv2.line(edge_line_img, (x1, y1), (x2, y2), (0, 255, 0), 2)
+                edge_line.append([(x1, y1), (x2, y2)])
+            lines_img = cv2.line(lines_img, (x1, y1), (x2, y2), (0, 255, 0), 2)
+    sample_lines = [[(340, 230), (145, 0)], [(340, 120), (195, 0)]]
+    cv2.line(edge_line_img, sample_lines[0][0], sample_lines[0][1], (0, 0, 255), 2)
+    cv2.line(edge_line_img, sample_lines[1][0], sample_lines[1][1], (0, 0, 255), 2)
+    cv2.imshow("edge lines", edge_line_img)
+    cv2.imshow("all lines", lines_img)
+    delta = 0
+    k = 0.02
+    if edge_line:
+        ex1 = sample_lines[0][0][0] - edge_line[0][0][0]
+        ex2 = sample_lines[0][1][0] - edge_line[0][1][0]
+        ey1 = sample_lines[0][0][1] - edge_line[0][0][1]
+        ey2 = sample_lines[0][1][1] - edge_line[0][1][1]
+
+        delta = (ex1 + ex2) - (ey1 + ey2)
+
+    else:
+        delta = -100
+    print(delta)
+
+    if key_handler[key.F]:
+        #lane_pose = env.get_lane_pos2(env.cur_pos, env.cur_angle)
+        #angle_from_straight_in_rads = lane_pose.angle_rad
+        #kd = 150
+        p = 0.5
+        delta = delta * k
+        #delta = k * (0 - angle_from_straight_in_rads)
+        #delta_d = kd * (prev_delta - (0 - angle_from_straight_in_rads))
+        #delta_d = kd * (prev_delta - delta)
+        #delta += delta_d
+        #kp = 0.1
+        #p += kp * delta_d
+        action += np.array([p, delta])
+        prev_delta = delta
+        print(delta)
+        env.step(action)
 
     if key_handler[key.RETURN]:
         im = Image.fromarray(obs)
