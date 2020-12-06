@@ -1,4 +1,13 @@
+#!/usr/bin/env python
+# manual
+
+"""
+This script allows you to manually control the simulator or Duckiebot
+using the keyboard arrows.
+"""
+import cv2
 from PIL import Image
+import argparse
 import sys
 
 import gym
@@ -16,6 +25,7 @@ env.render()
 
 @env.unwrapped.window.event
 def on_key_press(symbol, modifiers):
+    global prev_delta
     """
     This handler processes keyboard commands that
     control the simulation
@@ -23,6 +33,7 @@ def on_key_press(symbol, modifiers):
 
     if symbol == key.BACKSPACE or symbol == key.SLASH:
         print("RESET")
+        prev_delta = 0
         env.reset()
         env.render()
     elif symbol == key.PAGEUP:
@@ -31,25 +42,16 @@ def on_key_press(symbol, modifiers):
         env.close()
         sys.exit(0)
 
-    # Take a screenshot
-    # UNCOMMENT IF NEEDED - Skimage dependency
-    # elif symbol == key.RETURN:
-    #     print('saving screenshot')
-    #     img = env.render('rgb_array')
-    #     save_img('screenshot.png', img)
-
 
 # Register a keyboard handler
 key_handler = key.KeyStateHandler()
 env.unwrapped.window.push_handlers(key_handler)
 
-prev_sec =0
+prev_delta = 0
+
+
 def update(dt):
-    global prev_sec
-    """
-    This function is called at every frame to handle
-    movement/stepping and redrawing
-    """
+    global prev_delta
     wheel_distance = 0.102
     min_rad = 0.08
 
@@ -57,17 +59,19 @@ def update(dt):
 
     if key_handler[key.UP]:
         action += np.array([0.44, 0.0])
+        prev_delta = 0
     if key_handler[key.DOWN]:
         action -= np.array([0.44, 0])
+        prev_delta = 0
     if key_handler[key.LEFT]:
         action += np.array([0, 1])
+        prev_delta = 0
     if key_handler[key.RIGHT]:
         action -= np.array([0, 1])
+        prev_delta = 0
     if key_handler[key.SPACE]:
         action = np.array([0, 0])
-
-    second = env.unwrapped.step_count // env.unwrapped.frame_rate
-
+        prev_delta = 0
     v1 = action[0]
     v2 = action[1]
     # Limit radius of curvature
@@ -84,14 +88,37 @@ def update(dt):
     if key_handler[key.LSHIFT]:
         action *= 1.5
 
+    if key_handler[key.F]:
+        lane_pose = env.get_lane_pos2(env.cur_pos, env.cur_angle)
+        angle_from_straight_in_rads = lane_pose.angle_rad
+        k = -11
+        kd = 150
+        p = 0.7
+        delta = k * (0 - angle_from_straight_in_rads)
+        delta_d = kd * (prev_delta - (0 - angle_from_straight_in_rads))
+        delta += delta_d
+        kp = 0.1
+        p += kp * delta_d
+        action += np.array([p, delta])
+        prev_delta = (0 - angle_from_straight_in_rads)
+        print(angle_from_straight_in_rads)
+
     obs, reward, done, info = env.step(action)
     print("step_count = %s, reward=%.3f" % (env.unwrapped.step_count, reward))
+    img = cv2.cvtColor(obs, cv2.COLOR_BGR2RGB)
+    img = img[250:, 300:, :]
+    print(img.shape)
+    sample_line = [(340, 230), (145, 0)]
+    sample_line2 = [(340, 120), (195, 0)]
+    cv2.line(img, sample_line[0], sample_line[1], (0, 0, 255), 2)
+    cv2.line(img, sample_line2[0], sample_line2[1], (0, 255, 0), 2)
+    mask = cv2.inRange(img, (22, 75, 82), (255, 255, 255))
+    cv2.imshow("img", img)
+    cv2.imshow("mask", mask)
 
-    if second - prev_sec == 1:
+    if key_handler[key.RETURN]:
         im = Image.fromarray(obs)
-        im.save("images/pic" + str(second) + ".png")
-        print("saved")
-        prev_sec = second
+        im.save("pic.png")
 
     if done:
         print("done!")
