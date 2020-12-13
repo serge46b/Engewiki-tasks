@@ -134,8 +134,8 @@ def update(dt):
         ey1 = sample_lines[0][0][1] - edge_line[0][0][1]
         ey2 = sample_lines[0][1][1] - edge_line[0][1][1]
 
-        delta = (ex1 + ex2) - (ey1 + ey2)
-
+        #delta = (ex1 + ex2) - (ey1 + ey2)
+        delta = (ex1 + ey1) - (ex2 + ey2)
     else:
         delta = -100
     print(delta)
