@@ -2,7 +2,7 @@
   "graph":[
     {
       "id":0,
-      "coed_x":0,
+      "cord_x":0,
       "cord_y": 0,
       "neighbors_data":[
         {
@@ -17,7 +17,7 @@
     },
     {
       "id":2,
-      "coed_x":1,
+      "cord_x":1,
       "cord_y":0,
       "neighbors_data":[
         {
@@ -36,7 +36,7 @@
     },
     {
       "id":3,
-      "coed_x":2.5,
+      "cord_x":2.5,
       "cord_y":0,
       "neighbors_data":[
         {
@@ -50,8 +50,27 @@
       ]
     },
     {
+      "id":4,
+      "cord_x":1,
+      "cord_y":1,
+      "neighbors_data":[
+        {
+          "id":2,
+          "road_length":0.5
+        },
+        {
+          "id":10,
+          "road_length":0.5
+        },
+        {
+          "id":8,
+          "road_length":0.5
+        }
+      ]
+    },
+    {
       "id":5,
-      "coed_x":2.5,
+      "cord_x":2.5,
       "cord_y":1.5,
       "neighbors_data":[
         {
@@ -66,7 +85,7 @@
     },
     {
       "id":6,
-      "coed_x":2,
+      "cord_x":2,
       "cord_y":1.5,
       "neighbors_data":[
         {
@@ -81,7 +100,7 @@
     },
     {
       "id":7,
-      "coed_x":2,
+      "cord_x":2,
       "cord_y":2,
       "neighbors_data":[
         {
@@ -96,7 +115,7 @@
     },
     {
       "id":8,
-      "coed_x":1,
+      "cord_x":1,
       "cord_y":2,
       "neighbors_data":[
         {
@@ -115,7 +134,7 @@
     },
     {
       "id":9,
-      "coed_x":0,
+      "cord_x":0,
       "cord_y":2,
       "neighbors_data":[
         {
@@ -130,7 +149,7 @@
     },
     {
       "id":10,
-      "coed_x":0,
+      "cord_x":0,
       "cord_y":1,
       "neighbors_data":[
         {
