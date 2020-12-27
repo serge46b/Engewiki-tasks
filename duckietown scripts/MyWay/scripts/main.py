@@ -199,10 +199,12 @@ class Driver:
                 # print(red_edge_line[0][0][0], red_edge_line[0][1][0], red_edge_line[0][0][1], red_edge_line[0][1][1])
                 if -75 < rex1 < 75 and -75 < rex2 < 75 and -75 < rey1 < 75 and -75 < rey2 < 75:
                     self.__flag = 1
+                    print(round(self.__env.cur_pos[0], 2), round(self.__env.cur_pos[2], 2))
                     self.__next_move = self.__navi.next_step(round(self.__env.cur_pos[0], 2), round(self.__env.cur_pos[2], 2))
                     print(self.__next_move)
                     self.__prev_step = self.__env.unwrapped.step_count
             # print(self.__flag)
+            p = 0.5
             if self.__flag:
                 if self.__next_move == "forward":
                     if left_edge_line:
@@ -213,6 +215,11 @@ class Driver:
                         # print(rex1, rex2, rey1, rey2)
                         if -50 < rex1 < 50 and -50 < rex2 < 50 and -50 < rey1 < 50 and -50 < rey2 < 50:
                             self.__flag = 0
+                elif self.__next_move == "arrived":
+                    p = 0
+                    if key_handler[key.C]:
+                        self.__flag = 0
+                        p = 0.5
                 else:
                     if edge_line and self.__edge_line_flag == 1:
                         self.__prev_step = self.__env.unwrapped.step_count
@@ -230,7 +237,6 @@ class Driver:
             # lane_pose = self.__env.get_lane_pos2(self.__env.cur_pos, self.__env.cur_angle)
             # angle_from_straight_in_rads = lane_pose.angle_rad
             # kd = 1
-            p = 0.5
             if self.__flag:
                 if self.__next_move == "left":
                     delta = 70
@@ -282,10 +288,10 @@ class Graph:
 
     def get_point_id(self, x, y):
         index = None
-        x -= 0.6
-        y -= 0.6
+        x -= 1
+        y -= 1
         for i in range(len(self.__graph)):
-            if -0.5 < x - self.__graph[i]["cord_x"] < 0.5 and -0.5 < y - self.__graph[i]["cord_y"] < 0.5:
+            if -0.6 < x - self.__graph[i]["cord_x"] < 0.6 and -0.6 < y - self.__graph[i]["cord_y"] < 0.6:
                 index = i
         return self.__graph[index]["id"]
 
@@ -331,16 +337,19 @@ class Navi:
 
     def next_step(self, x, y):
         id = self.__graph.get_point_id(x, y)
+        print(id)
         point_index = None
         for i in range(len(self.__way)):
             if self.__way[i] == id:
                 point_index = i
+                break
         if point_index == len(self.__way) - 1:
             return "arrived"
         else:
             prev_x, prev_y = self.__graph.get_point_cords(self.__way[point_index - 1])
             real_x, real_y = self.__graph.get_point_cords(id)
             next_x, next_y = self.__graph.get_point_cords(self.__way[point_index + 1])
+            print(prev_x, prev_y, real_x, real_y, next_x, next_y)
             prev_angle = 0
             if prev_x > real_x:
                 prev_angle = -180
@@ -360,7 +369,7 @@ class Navi:
             elif real_y < next_y:
                 next_angle = 90
             angle = prev_angle + next_angle
-            #print(angle)
+            print(angle)
             if angle > 180:
                 angle = 180 - angle
             elif angle < -180:
@@ -375,7 +384,7 @@ class Navi:
 
 graph = Graph("duckietown map graph exemple.json")
 navi = Navi(graph)
-way = navi.generate_way(4, 8)
+way = navi.generate_way(0, 2)
 print(way)
 driver = Driver(env, navi)
 driver.main()
