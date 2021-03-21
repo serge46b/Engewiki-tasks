@@ -10,6 +10,7 @@ import gym
 import numpy as np
 import pyglet
 from pyglet.window import key
+import time
 
 from gym_duckietown.envs import DuckietownEnv
 
@@ -37,6 +38,11 @@ def on_key_press(symbol, modifiers):
     elif symbol == key.ESCAPE:
         env.close()
         sys.exit(0)
+    elif symbol == key.RETURN:
+        print('saving screenshot')
+        img = env.render('rgb_array')
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        cv2.imwrite('screenshot' + str(time.localtime()) + '.jpg', img)
 
 
 # Register a keyboard handler
@@ -90,7 +96,7 @@ def update(dt):
 
     obs, reward, done, info = env.step(action)
     print(round(env.cur_pos[0], 2), round(env.cur_pos[2], 2))
-    #print("step_count = %s, reward=%.3f" % (env.unwrapped.step_count, reward))
+    # print("step_count = %s, reward=%.3f" % (env.unwrapped.step_count, reward))
     img_right = cv2.cvtColor(obs, cv2.COLOR_BGR2RGB)
     img_left = copy.deepcopy(img_right)
     img_right = img_right[250:, 300:, :]
@@ -212,13 +218,13 @@ def update(dt):
         rex2 = red_sample_lines[1][0] - (1340 - red_edge_line[0][1][0])
         rey1 = red_sample_lines[0][1] - red_edge_line[0][0][1]
         rey2 = red_sample_lines[1][1] - red_edge_line[0][1][1]
-        #print(rex1, rex2, rey1, rey2)
-        #print(red_edge_line[0][0][0], red_edge_line[0][1][0], red_edge_line[0][0][1], red_edge_line[0][1][1])
+        # print(rex1, rex2, rey1, rey2)
+        # print(red_edge_line[0][0][0], red_edge_line[0][1][0], red_edge_line[0][0][1], red_edge_line[0][1][1])
         if -75 < rex1 < 75 and -75 < rex2 < 75 and -75 < rey1 < 75 and -75 < rey2 < 75:
             flag = 1
             next_move = input()
             prev_step = env.unwrapped.step_count
-    #print(flag)
+    # print(flag)
     if flag:
         if next_move == "forward":
             if left_edge_line:
@@ -226,7 +232,7 @@ def update(dt):
                 rex2 = left_sample_lines[1][0] - (1340 - left_edge_line[0][1][0])
                 rey1 = left_sample_lines[0][1] - left_edge_line[0][0][1]
                 rey2 = left_sample_lines[1][1] - left_edge_line[0][1][1]
-                #print(rex1, rex2, rey1, rey2)
+                # print(rex1, rex2, rey1, rey2)
                 if -50 < rex1 < 50 and -50 < rex2 < 50 and -50 < rey1 < 50 and -50 < rey2 < 50:
                     flag = 0
         else:
@@ -247,12 +253,12 @@ def update(dt):
     if key_handler[key.F]:
         # lane_pose = env.get_lane_pos2(env.cur_pos, env.cur_angle)
         # angle_from_straight_in_rads = lane_pose.angle_rad
-        #kd = 1
+        # kd = 1
         p = 0.5
         if flag:
             if next_move == "left":
                 delta = 70
-            #elif next_move == "right":
+            # elif next_move == "right":
             #    delta = -140
             elif next_move == "forward":
                 delta = 0
@@ -265,7 +271,7 @@ def update(dt):
         # p += kp * delta_d
         action += np.array([p, delta])
         # prev_delta = delta
-        #print(delta)
+        # print(delta)
         env.step(action)
 
     if key_handler[key.RETURN]:

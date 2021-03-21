@@ -320,6 +320,7 @@ class Navi:
         self.__graph = class_graph
         self.__way = []
 
+    """"
     def generate_way(self, start_point_id, end_point_id):
         id = None
         prev_id = start_point_id
@@ -334,6 +335,11 @@ class Navi:
             self.__way.append(id)
             prev_id = id
         return self.__way
+"""
+
+    def generate_way(self, start_point_id, end_point_id):
+        
+        return
 
     def next_step(self, x, y):
         id = self.__graph.get_point_id(x, y)
@@ -384,7 +390,7 @@ class Navi:
 
 graph = Graph("duckietown map graph exemple.json")
 navi = Navi(graph)
-way = navi.generate_way(0, 2)
+way = navi.generate_way(0, 5)
 print(way)
 driver = Driver(env, navi)
 driver.main()
