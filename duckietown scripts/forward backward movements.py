@@ -45,7 +45,7 @@ def on_key_press(symbol, modifiers):
     # elif symbol == key.RETURN:
     #     print('saving screenshot')
     #     img = env.render('rgb_array')
-    #     save_img('screenshot.png', img)
+    #     save_img('screenshot.1.png', img)
 
 
 # Register a keyboard handler

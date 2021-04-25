@@ -23,7 +23,7 @@ key_handler = key.KeyStateHandler()
 env.unwrapped.window.push_handlers(key_handler)
 
 
-#@env.unwrapped.window.event
+# @env.unwrapped.window.event
 class Driver:
     def __init__(self, my_env, class_navi):
         self.__prev_delta = 0
@@ -320,7 +320,6 @@ class Navi:
         self.__graph = class_graph
         self.__way = []
 
-    """"
     def generate_way(self, start_point_id, end_point_id):
         id = None
         prev_id = start_point_id
@@ -335,12 +334,12 @@ class Navi:
             self.__way.append(id)
             prev_id = id
         return self.__way
-"""
 
+    """
     def generate_way(self, start_point_id, end_point_id):
         
         return
-
+    """
     def next_step(self, x, y):
         id = self.__graph.get_point_id(x, y)
         print(id)

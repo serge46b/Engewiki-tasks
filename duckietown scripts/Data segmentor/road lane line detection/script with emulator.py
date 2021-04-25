@@ -383,8 +383,8 @@ def update(dt):
                 cv2.floodFill(final_mask, None, (fillX, fillY), (1, 1, 1))
             counter += 1
             if counter % 20 == 0:
-                cv2.imwrite("images/img." + str(counter // 20) + ".jpg", img)
-                cv2.imwrite("masks/mask." + str(counter // 20) + ".jpg", final_mask)
+                cv2.imwrite("images/img." + str(counter // 20) + ".png", img)
+                cv2.imwrite("masks/mask." + str(counter // 20) + ".png", final_mask)
         else:
             print("denied")
 
