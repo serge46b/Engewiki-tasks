@@ -3,7 +3,7 @@
 import copy
 import math
 from datetime import datetime
-from random import randint
+import random
 
 import cv2
 from PIL import Image
@@ -14,12 +14,17 @@ import numpy as np
 import pyglet
 from pyglet.window import key
 
+import navigator
+
 from gym_duckietown.envs import DuckietownEnv
 
 env = gym.make("Duckietown-udem1-v0")
 
 env.reset()
 env.render()
+
+graph = navigator.Graph("duckietown map graph exemple.json")
+navi = navigator.Navi(graph)
 
 
 @env.unwrapped.window.event
@@ -51,16 +56,14 @@ def on_key_press(symbol, modifiers):
 key_handler = key.KeyStateHandler()
 env.unwrapped.window.push_handlers(key_handler)
 
-
 prev_delta = 0
 prev_step = 0
 flag = 0
 next_move = "forward"
 edge_line_flag = 0
-rotate_dict = {0: "forward", 1: "left", 2: "right"}
 
 
-def pd_driver(obs):
+def pd_driver(obs, unwrapped_env):
     global prev_delta, prev_step, flag, next_move, edge_line_flag
     wheel_distance = 0.102
     min_rad = 0.08
@@ -208,8 +211,21 @@ def pd_driver(obs):
         # print(red_edge_line[0][0][0], red_edge_line[0][1][0], red_edge_line[0][0][1], red_edge_line[0][1][1])
         if -75 < rex1 < 75 and -75 < rex2 < 75 and -75 < rey1 < 75 and -75 < rey2 < 75:
             flag = 1
-            next_move = rotate_dict[randint(0, 2)]
-            prev_step = env.unwrapped.step_count
+            next_move = "error"
+            while next_move == "error":
+                x, y = round(unwrapped_env.cur_pos[0], 2), round(unwrapped_env.cur_pos[2], 2)
+                angle = round(unwrapped_env.cur_angle * 57)
+                print(x, y, angle)
+                now_id = graph.get_point_id(x, y, angle)
+                print(now_id)
+                neighbours = graph.get_neighbours_id(now_id)
+                print(neighbours)
+                chosen_neighbour = random.choice(neighbours)
+                print(chosen_neighbour)
+                direction = navi.get_direction_from_point(now_id, chosen_neighbour, angle)
+                print(direction)
+                next_move = direction
+            prev_step = unwrapped_env.step_count
     # print(flag)
     if flag:
         if next_move == "forward":
@@ -223,16 +239,16 @@ def pd_driver(obs):
                     flag = 0
         else:
             if edge_line and edge_line_flag == 1:
-                prev_step = env.unwrapped.step_count
+                prev_step = unwrapped_env.step_count
                 flag = 0
                 edge_line_flag = 0
                 print("ok")
             elif not edge_line:
-                if env.unwrapped.step_count - prev_step > 50:
+                if unwrapped_env.step_count - prev_step > 50:
                     edge_line_flag = 1
             print(edge_line_flag, len(edge_line))
     elif prev_step != 0:
-        if env.unwrapped.step_count - prev_step > 70:
+        if unwrapped_env.step_count - prev_step > 70:
             prev_step = 0
             flag = 0
 
@@ -384,7 +400,7 @@ def update(dt):
             counter += 1
             if counter % 20 == 0:
                 cv2.imwrite("images/img." + str(counter // 20) + ".png", img)
-                cv2.imwrite("masks/mask." + str(counter // 20) + ".png", final_mask)
+                cv2.imwrite("masks/img." + str(counter // 20) + ".png", final_mask)
         else:
             print("denied")
 
@@ -393,7 +409,7 @@ def update(dt):
 
     cv2.imshow("final mask", final_mask)
     if key_handler[key.F]:
-        action = pd_driver(obs)
+        action = pd_driver(obs, env.unwrapped)
     env.step(action)
 
     # white_mask = cv2.inRange(cutted_image, (10, 29, 77), (101, 84, 171))

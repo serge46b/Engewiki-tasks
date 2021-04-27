@@ -8,12 +8,23 @@ class Graph:
         for i in json_graph["graph"]:
             self.__graph.append(i)
 
-    def get_point_id(self, x, y):
+    def get_point_id(self, x, y, angle):
         index = None
         x -= 1
         y -= 1
+        if -45 < angle < 45:
+            x += 0.5
+        elif -180 < angle < -135 or 180 > angle > 135:
+            x -= 0.5
+        elif 135 > angle > 45:
+            y -= 0.5
+        elif -45 > angle > -135:
+            y += 0.5
+        x = round(x, 2)
+        y = round(y, 2)
+        print(x, y)
         for i in range(len(self.__graph)):
-            if -0.6 < x - self.__graph[i]["cord_x"] < 0.6 and -0.6 < y - self.__graph[i]["cord_y"] < 0.6:
+            if -0.5 < x - self.__graph[i]["cord_x"] < 0.5 and -0.5 < y - self.__graph[i]["cord_y"] < 0.5:
                 index = i
         return self.__graph[index]["id"]
 
@@ -68,11 +79,11 @@ class Navi:
         print(real_x, real_y, next_x, next_y)
         prev_angle = 0
         if -45 < now_angle < 45:
-            prev_angle = -180
-        elif -180 < now_angle < -135 or 180 > now_angle > 135:
             prev_angle = 0
+        elif -180 < now_angle < -135 or 180 > now_angle > 135:
+            prev_angle = -180
         elif 135 > now_angle > 45:
-            prev_angle = -270
+            prev_angle = 90
         elif -45 > now_angle > -135:
             prev_angle = -90
         next_angle = 0
@@ -81,7 +92,7 @@ class Navi:
         elif real_x < next_x:
             next_angle = 0
         elif real_y > next_y:
-            next_angle = 270
+            next_angle = -90
         elif real_y < next_y:
             next_angle = 90
         angle = prev_angle + next_angle

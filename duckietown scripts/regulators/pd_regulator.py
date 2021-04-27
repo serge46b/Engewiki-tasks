@@ -95,7 +95,7 @@ def update(dt):
         action *= 1.5
 
     obs, reward, done, info = env.step(action)
-    print(round(env.cur_pos[0], 2), round(env.cur_pos[2], 2))
+    print(round(env.cur_pos[0], 2), round(env.cur_pos[2], 2), env.cur_angle * 57)
     # print("step_count = %s, reward=%.3f" % (env.unwrapped.step_count, reward))
     img_right = cv2.cvtColor(obs, cv2.COLOR_BGR2RGB)
     img_left = copy.deepcopy(img_right)
