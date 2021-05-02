@@ -13,7 +13,8 @@ elif model_name == "segnet_dt" or model_name == "segnet_dt_mid_dataset" or model
 else:
     raise Exception("UnknownModelError")
 
-path = "A:/Serge/Desktop/files/project files/engewiki duckietown NN course/keras segmentation data/"
+#path = "A:/Serge/Desktop/files/project files/engewiki duckietown NN course/keras segmentation data/"
+path = "H:/some_files/engewiki duckietown NN course/keras segmentation data"
 # dataset1/images_prepped_train/
 # dataset_dt/images/
 # dataset_dt2/images/

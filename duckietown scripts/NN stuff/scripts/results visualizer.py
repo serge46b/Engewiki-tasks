@@ -15,7 +15,9 @@ elif model_name == "segnet_dt" or model_name == "segnet_dt_mid_dataset" or model
 else:
     raise Exception("UnknownModelError")
 
-path = "A:/Serge/Desktop/files/project files/engewiki duckietown NN course/keras segmentation data/"
+#path = "C:/Serge/Desktop/files/project files/engewiki duckietown NN course/keras segmentation data/"
+#path = "C:/Users/Serg/Desktop/some_files/engewiki duckietown NN course/keras segmentation data/"
+path = "H:/some_files/engewiki duckietown NN course/keras segmentation data/"
 
 model.load_weights(path + "tmp/" + model_name + "/weights/" + model_name + "_weights")
 
