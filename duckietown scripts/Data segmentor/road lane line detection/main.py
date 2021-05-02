@@ -16,6 +16,8 @@ from pyglet.window import key
 
 import navigator
 
+import glob
+
 from gym_duckietown.envs import DuckietownEnv
 
 env = gym.make("Duckietown-udem1-v0")
@@ -25,6 +27,23 @@ env.render()
 
 graph = navigator.Graph("duckietown map graph exemple.json")
 navi = navigator.Navi(graph)
+
+max_dataset_count = 1005
+max_num = 0
+counter = 0
+dataset_done = False
+for name in glob.glob("images/*.png"):
+    num = ""
+    for s in name:
+        if s.isnumeric():
+            num += s
+    num = int(num)
+    if max_num < num:
+        max_num = num
+if max_num > max_dataset_count:
+    dataset_done = True
+else:
+    counter = max_num * 20
 
 
 @env.unwrapped.window.event
@@ -200,7 +219,7 @@ def pd_driver(obs, unwrapped_env):
 
         delta = ((ex1 + ex2) - (ey1 + ey2))
     else:
-        delta = -175
+        delta = -180
 
     if red_edge_line and not flag:
         rex1 = red_sample_lines[0][0] - (1000 + red_edge_line[0][0][0])
@@ -258,7 +277,7 @@ def pd_driver(obs, unwrapped_env):
     p = 0.5
     if flag:
         if next_move == "left":
-            delta = 70
+            delta = 80
         # elif next_move == "right":
         #    delta = -140
         elif next_move == "forward":
@@ -276,11 +295,11 @@ def pd_driver(obs, unwrapped_env):
     return action
 
 
-counter = 0
+observ = np.uint8(np.zeros((480, 640, 3)))
 
 
 def update(dt):
-    global counter, prev_step
+    global counter, prev_step, observ, flag, dataset_done
     wheel_distance = 0.102
     min_rad = 0.08
 
@@ -312,17 +331,22 @@ def update(dt):
     if key_handler[key.LSHIFT]:
         action *= 1.5
 
-    obs, reward, done, info = env.step(action)
+    env.step(action)
+
     # print(round(env.cur_pos[0], 2), round(env.cur_pos[2], 2))
     # print("step_count = %s, reward=%.3f" % (env.unwrapped.step_count, reward))
-    img = cv2.cvtColor(obs, cv2.COLOR_BGR2RGB)
+    img = cv2.cvtColor(observ, cv2.COLOR_BGR2RGB)
     # cv2.imshow("original", img)
     cutout_img = np.zeros_like(img)
     # print(cutout_img.shape)
+    """
     cv2.line(cutout_img, (75, 210), (565, 210), (255, 255, 255), 4)
     cv2.line(cutout_img, (0, 350), (75, 210), (255, 255, 255), 4)
-    cv2.line(cutout_img, (640, 350), (565, 210), (255, 255, 255), 4)
+    cv2.line(cutout_img, (640, 350), (565, 210), (255, 255, 255), 4)"""
+
+    cv2.line(cutout_img, (0, 210), (640, 210), (255, 255, 255), 4)
     cv2.floodFill(cutout_img, None, (639, 479), (255, 255, 255))
+
     # cv2.imshow("cutout", cutout_img)
 
     # white_mask = cv2.inRange(out, (22, 75, 82), (255, 255, 255))
@@ -344,8 +368,13 @@ def update(dt):
     cut_image = cv2.bitwise_and(th_img, cutout_img)
     cv2.imshow("cut threshold", cut_image)
 
+    kernel = np.ones((5, 5), np.uint8)
+    opening_img = cv2.morphologyEx(cut_image, cv2.MORPH_OPEN, kernel)
+
+    cv2.imshow("opening", opening_img)
+
     # find all your connected components (white blobs in your image)
-    nb_components, output, stats, centroids = cv2.connectedComponentsWithStats(cut_image, connectivity=8)
+    nb_components, output, stats, centroids = cv2.connectedComponentsWithStats(opening_img, connectivity=8)
     # connectedComponentswithStats yields every seperated component with information on each of them, such as size
     # the following part is just taking out the background which is also considered a component, but most of the time we don't want that.
     sizes = stats[1:, -1]
@@ -353,7 +382,7 @@ def update(dt):
 
     # minimum size of particles we want to keep (number of pixels)
     # here, it's a fixed value, but you can set it as you want, eg the mean of the sizes or whatever
-    min_size = 800
+    min_size = 200
 
     # your answer image
     filtered_img = np.zeros(output.shape)
@@ -362,7 +391,7 @@ def update(dt):
         if sizes[i] >= min_size:
             filtered_img[output == i + 1] = 255
 
-    cv2.imshow("filtered", filtered_img)
+    # cv2.imshow("filtered", filtered_img)
 
     filtered_img = np.uint8(filtered_img * 255)
 
@@ -390,8 +419,8 @@ def update(dt):
             dist = math.sqrt(distX ** 2 + distY ** 2)
             if dist < min_dist:
                 min_dist = dist
-        if min_dist > 40:
-            print("allowed")
+        if min_dist > 25:
+            print("allowed", counter // 20)
             cv2.drawContours(final_mask, contours, -1, (1, 1, 1), 2)
             for i in range(len(center_cords)):
                 fillX = center_cords[i][0]
@@ -402,27 +431,36 @@ def update(dt):
                 cv2.imwrite("images/img." + str(counter // 20) + ".png", img)
                 cv2.imwrite("masks/img." + str(counter // 20) + ".png", final_mask)
         else:
-            print("denied")
+            print("denied", counter // 20)
 
     # cv2.imshow('contours', img)  # вывод обработанного кадра в окно
     cv2.imshow("contours and centers", centers)
 
     cv2.imshow("final mask", final_mask)
     if key_handler[key.F]:
-        action = pd_driver(obs, env.unwrapped)
-    env.step(action)
+        action = pd_driver(observ, env.unwrapped)
+    observ, reward, done, info = env.step(action)
 
     # white_mask = cv2.inRange(cutted_image, (10, 29, 77), (101, 84, 171))
     # cv2.imshow("white mask", white_mask)
 
     if key_handler[key.RETURN]:
-        im = Image.fromarray(obs)
+        im = Image.fromarray(observ)
         im.save("pic.png")
 
     if done:
         print("done!")
+        flag = 0
         env.reset()
         env.render()
+
+    if counter // 20 > max_dataset_count:
+        dataset_done = True
+
+    if dataset_done:
+        print("dataset is done!")
+        env.close()
+        sys.exit(0)
 
     env.render()
 
