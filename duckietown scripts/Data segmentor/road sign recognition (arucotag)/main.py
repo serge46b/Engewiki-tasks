@@ -19,6 +19,7 @@ import navigator
 import glob
 
 from gym_duckietown.envs import DuckietownEnv
+import cv2.aruco as aruco
 
 env = gym.make("Duckietown-udem1-v0")
 
@@ -32,18 +33,17 @@ max_dataset_count = 1005
 max_num = 0
 counter = 0
 dataset_done = False
-for name in glob.glob("images/*.png"):
-    num = ""
-    for s in name:
-        if s.isnumeric():
-            num += s
-    num = int(num)
-    if max_num < num:
-        max_num = num
-if max_num > max_dataset_count:
-    dataset_done = True
-else:
-    counter = max_num * 20
+
+def findArucoMarkers(img, markerSize=6, totalMarkers=250, draw=True):
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    key = getattr(aruco, f'DICT_{markerSize}X{markerSize}_{totalMarkers}')
+    aruco_dict = aruco.Dictionary_get(key)
+    aruco_param = aruco.DetectorParameters_create()
+    bboxs, ids, rejected = aruco.detectMarkers(gray, aruco_dict, parameters=aruco_param)
+    # print(ids)
+    if draw:
+        aruco.drawDetectedMarkers(img, bboxs)
+    return [bboxs, ids]
 
 
 @env.unwrapped.window.event
@@ -337,106 +337,14 @@ def update(dt):
     # print("step_count = %s, reward=%.3f" % (env.unwrapped.step_count, reward))
     img = cv2.cvtColor(observ, cv2.COLOR_BGR2RGB)
     # cv2.imshow("original", img)
-    """cutout_img = np.zeros_like(img)
-    # print(cutout_img.shape)
-    
-    cv2.line(cutout_img, (75, 210), (565, 210), (255, 255, 255), 4)
-    cv2.line(cutout_img, (0, 350), (75, 210), (255, 255, 255), 4)
-    cv2.line(cutout_img, (640, 350), (565, 210), (255, 255, 255), 4)
+    aruco_img = img.copy()
+    aruco_marks = findArucoMarkers(aruco_img)
+    # loop through all the markers and augment each one
+    # if len(aruco_marks[0]) != 0:
+    #    for bbox, id in zip(aruco_marks[0], aruco_marks[1]):
+    #        print(id)
+    cv2.imshow('aruco img', aruco_img)
 
-    cv2.line(cutout_img, (0, 210), (640, 210), (255, 255, 255), 4)
-    cv2.floodFill(cutout_img, None, (639, 479), (255, 255, 255))
-
-    # cv2.imshow("cutout", cutout_img)
-
-    # white_mask = cv2.inRange(out, (22, 75, 82), (255, 255, 255))
-    gray = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
-    # cv2.imshow("gray", gray)
-
-    # _, th_img1 = cv2.threshold(obs, 127, 255, cv2.THRESH_BINARY)
-    # cv2.imshow("threshold 1", th_img1)
-
-    _, th_img = cv2.threshold(gray, 67, 255, cv2.THRESH_BINARY)
-    # th_img1 = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY_INV, 15, 4)
-    cv2.imshow("threshold", th_img)
-
-    # cutted_image = np.zeros_like(img)
-    cutout_img = cv2.cvtColor(cutout_img, cv2.COLOR_RGB2GRAY)
-    # cv2.imshow("cutout", cutout_img)
-    # cv2.imshow("threshold", th_img)
-
-    cut_image = cv2.bitwise_and(th_img, cutout_img)
-    cv2.imshow("cut threshold", cut_image)
-
-    kernel = np.ones((5, 5), np.uint8)
-    opening_img = cv2.morphologyEx(cut_image, cv2.MORPH_OPEN, kernel)
-
-    cv2.imshow("opening", opening_img)
-
-    # find all your connected components (white blobs in your image)
-    nb_components, output, stats, centroids = cv2.connectedComponentsWithStats(opening_img, connectivity=8)
-    # connectedComponentswithStats yields every seperated component with information on each of them, such as size
-    # the following part is just taking out the background which is also considered a component, but most of the time we don't want that.
-    sizes = stats[1:, -1]
-    nb_components = nb_components - 1
-
-    # minimum size of particles we want to keep (number of pixels)
-    # here, it's a fixed value, but you can set it as you want, eg the mean of the sizes or whatever
-    min_size = 200
-
-    # your answer image
-    filtered_img = np.zeros(output.shape)
-    # for every component in the image, you keep it only if it's above min_size
-    for i in range(0, nb_components):
-        if sizes[i] >= min_size:
-            filtered_img[output == i + 1] = 255
-
-    # cv2.imshow("filtered", filtered_img)
-
-    filtered_img = np.uint8(filtered_img * 255)
-
-    contours, hierarchy = cv2.findContours(filtered_img, cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
-
-    # print(len(contours), final_mask.shape)
-    final_mask = np.zeros_like(img)
-    contours_img = copy.deepcopy(img)
-    cv2.drawContours(contours_img, contours, -1, (0, 255, 0), 2)
-    centers = copy.deepcopy(contours_img)
-    center_cords = []
-    for c in range(len(contours)):
-        m = cv2.moments(contours[c])
-        cx = int(m["m10"] / m["m00"])
-        cy = int(m["m01"] / m["m00"])
-        center_cords.append([cx, cy])
-        cv2.circle(centers, (cx, cy), 1, (0, 0, 255), 3)
-
-    if len(center_cords) > 1:
-        min_dist = math.sqrt(
-            (center_cords[1][0] - center_cords[0][0]) ** 2 + (center_cords[1][1] - center_cords[0][1]) ** 2)
-        for i in range(1, len(center_cords)):
-            distX = center_cords[i][0] - center_cords[i - 1][0]
-            distY = center_cords[i][1] - center_cords[i - 1][1]
-            dist = math.sqrt(distX ** 2 + distY ** 2)
-            if dist < min_dist:
-                min_dist = dist
-        if min_dist > 25:
-            print("allowed", counter // 20)
-            cv2.drawContours(final_mask, contours, -1, (1, 1, 1), 2)
-            for i in range(len(center_cords)):
-                fillX = center_cords[i][0]
-                fillY = center_cords[i][1]
-                cv2.floodFill(final_mask, None, (fillX, fillY), (1, 1, 1))
-            counter += 1
-            if counter % 20 == 0:
-                cv2.imwrite("images/img." + str(counter // 20) + ".png", img)
-                cv2.imwrite("masks/img." + str(counter // 20) + ".png", final_mask)
-        else:
-            print("denied", counter // 20)
-
-    # cv2.imshow('contours', img)  # вывод обработанного кадра в окно
-    cv2.imshow("contours and centers", centers)
-
-    cv2.imshow("final mask", final_mask)"""
     if key_handler[key.F]:
         action = pd_driver(observ, env.unwrapped)
     observ, reward, done, info = env.step(action)
