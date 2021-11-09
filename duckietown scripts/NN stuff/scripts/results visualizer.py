@@ -1,5 +1,6 @@
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 from IPython.display import Image
+import os
 model_name = input("Enter model name: ")
 if model_name == "vgg_unet":
     from keras_segmentation.models.unet import vgg_unet
@@ -12,6 +13,9 @@ elif model_name == "segnet_dt" or model_name == "segnet_dt_mid_dataset" or model
         or model_name == "segnet_dt_mid_dataset_dt4" or model_name == "segnet_dt_big_dataset_dt5":
     from keras_segmentation.models.segnet import segnet
     model = segnet(n_classes=2, input_height=480, input_width=640)
+elif model_name == "densenet_unet_dt" or model_name == "densenet_unet_dt_big_dataset":
+    from keras_segmentation.models.unet import densenet_unet
+    model = densenet_unet(n_classes=2, input_height=480, input_width=640)
 else:
     raise Exception("UnknownModelError")
 
@@ -31,7 +35,11 @@ classes = input("enter model classes: ").split(", ")
 # dataset_dt3/test/img.1.png
 # dataset_dt4/test/img.1.png
 test_path = path + input("enter path to test image: ")
-results_name = path + "tmp/" + model_name + "/results/out_" + input("enter resulting image name: ")
+save_path = path + "tmp/" + model_name + "/results/"
+if not os.path.exists(save_path):
+    print("save directory doesn't exists, creating...")
+    os.mkdir(save_path)
+results_name = save_path + "out_" + input("enter resulting image name: ")
 
 out = model.predict_segmentation(
     inp=test_path,

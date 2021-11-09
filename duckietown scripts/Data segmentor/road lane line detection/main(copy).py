@@ -20,8 +20,8 @@ import glob
 
 from gym_duckietown.envs import DuckietownEnv
 
-env = gym.make("Duckietown-udem1-v0")
-
+# env = gym.make("Duckietown-udem1-v0")
+env = DuckietownEnv(map_name="TTIC_large_loop")
 env.reset()
 env.render()
 
@@ -204,10 +204,10 @@ def pd_driver(obs, unwrapped_env):
     # cv2.line(edge_line_img, sample_lines[1][0], sample_lines[1][1], (0, 0, 255), 2)
     cv2.imshow("edge lines", edge_line_img)
     cv2.imshow("all lines", lines_img)
-    cv2.imshow("red edge lines", red_edge_line_img)
-    cv2.imshow("red all lines", red_lines_img)
-    cv2.imshow("left edge lines", left_edge_line_img)
-    cv2.imshow("left all lines", left_lines_img)
+    # cv2.imshow("red edge lines", red_edge_line_img)
+    # cv2.imshow("red all lines", red_lines_img)
+    # cv2.imshow("left edge lines", left_edge_line_img)
+    # cv2.imshow("left all lines", left_lines_img)
 
     delta = 0
     k = 0.015
@@ -358,7 +358,7 @@ def update(dt):
 
     _, th_img = cv2.threshold(gray, 80, 255, cv2.THRESH_BINARY)
     # th_img1 = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY_INV, 15, 4)
-    cv2.imshow("threshold", th_img)
+    # cv2.imshow("threshold", th_img)
 
     # cutted_image = np.zeros_like(img)
     cutout_img = cv2.cvtColor(cutout_img, cv2.COLOR_RGB2GRAY)
@@ -371,7 +371,7 @@ def update(dt):
     kernel = np.ones((5, 5), np.uint8)
     opening_img = cv2.morphologyEx(cut_image, cv2.MORPH_OPEN, kernel)
 
-    cv2.imshow("opening", opening_img)
+    # cv2.imshow("opening", opening_img)
 
     # find all your connected components (white blobs in your image)
     nb_components, output, stats, centroids = cv2.connectedComponentsWithStats(opening_img, connectivity=8)
@@ -399,16 +399,46 @@ def update(dt):
 
     # print(len(contours), final_mask.shape)
     final_mask = np.zeros_like(img)
-    contours_img = copy.deepcopy(img)
-    cv2.drawContours(contours_img, contours, -1, (0, 255, 0), 2)
-    centers = copy.deepcopy(contours_img)
+    contours_on_orig_img = copy.deepcopy(img)
+    contours_colored_img = np.zeros_like(img, dtype=np.uint8)
+
+    cv2.drawContours(contours_on_orig_img, contours, -1, (0, 255, 0), 2)
+    centers_on_orig_img = copy.deepcopy(contours_on_orig_img)
     center_cords = []
+    colours_n_contours = {}
+    min_max_h = [255, 0]
     for c in range(len(contours)):
         m = cv2.moments(contours[c])
         cx = int(m["m10"] / m["m00"])
         cy = int(m["m01"] / m["m00"])
         center_cords.append([cx, cy])
-        cv2.circle(centers, (cx, cy), 1, (0, 0, 255), 3)
+        cv2.circle(centers_on_orig_img, (cx, cy), 1, (0, 0, 255), 3)
+        approx = cv2.approxPolyDP(contours[c], 0.008 * cv2.arcLength(contours[c], True), True)
+        if not (250 < cv2.contourArea(approx) < 30000):
+            continue
+        color_rgb = img[cy, cx, ::]
+        color_hsv = cv2.cvtColor(np.array([[color_rgb]]), cv2.COLOR_RGB2HSV)[0][0]
+        if color_hsv[2] > 70:
+            cv2.drawContours(contours_colored_img, [approx], 0, tuple([int(i) for i in color_rgb]), 3)
+            colours_n_contours[c] = [color_hsv[1], cx, cy]
+            if min_max_h[1] > color_hsv[1]:
+                min_max_h[1] = color_hsv[1]
+            if min_max_h[0] < color_hsv[1]:
+                min_max_h[0] = color_hsv[1]
+            # if color_hsv[1] < 125:
+            #     text = f"White {color_hsv[1]}"
+            #     text_size = cv2.getTextSize(text, cv2.FONT_HERSHEY_SIMPLEX, 0.5, 1)[0]
+            #     cv2.putText(contours_colored_img, text, (cx - text_size[0] // 2, cy - text_size[1] // 2),
+            #                 cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
+            # else:
+            #     text = f"yellow {color_hsv[1]}"
+            #     text_size = cv2.getTextSize(text, cv2.FONT_HERSHEY_SIMPLEX, 0.5, 1)[0]
+            #     cv2.putText(contours_colored_img, text, (cx - text_size[0] // 2, cy - text_size[1] // 2),
+            #                 cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 255), 1)
+
+
+
+    cv2.imshow("cnt colored", contours_colored_img)
 
     if len(center_cords) > 1:
         min_dist = math.sqrt(
@@ -434,9 +464,9 @@ def update(dt):
             print("denied", counter // 20)
 
     # cv2.imshow('contours', img)  # вывод обработанного кадра в окно
-    cv2.imshow("contours and centers", centers)
+    cv2.imshow("contours and centers", centers_on_orig_img)
 
-    cv2.imshow("final mask", final_mask)
+    # cv2.imshow("final mask", final_mask)
     if key_handler[key.F]:
         action = pd_driver(observ, env.unwrapped)
     observ, reward, done, info = env.step(action)
