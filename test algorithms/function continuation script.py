@@ -7,7 +7,8 @@ img = np.zeros((480, 640, 3))
 k = 2
 dx = x2 - x1
 x3 = x2 + int(dx * k)
-y3 = y2 * (k + 1) - y1
+dy = y2 - y1
+y3 = y2 + int(dy * k)
 print(k, dx, x3, y3)
 cv2.line(img, (x1, y1), (x2, y2), (0, 255, 0), 6)
 cv2.line(img, (x1, y1), (x3, y3), (0, 0, 255), 2)

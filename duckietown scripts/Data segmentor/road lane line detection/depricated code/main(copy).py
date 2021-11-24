@@ -489,16 +489,18 @@ def update(dt):
                 """dist = np.sqrt((x1 - x2) ** 2 + (y1 - y2) ** 2)
                 new_dist = dist * 1
                 k = new_dist // dist"""
-                k = 1.5  # + (max(y1, y2) == img.shape[0]) * 100
+                k = 2  # + (max(y1, y2) == img.shape[0]) * 100
                 dx = x2 - x1
                 x3 = x2 + int(dx * k)
-                y3 = y2 * int(k + 1) - y1
+                dy = y2 - y1
+                y3 = y2 + int(dy * k)
                 cv2.line(add_lines_img, (x1, y1), (x3, y3), (0, 255, 0), 3)
 
                 dx = x1 - x2
                 x4 = x1 + int(dx * k)
-                y4 = y1 * int(k + 1) - y2
-                cv2.line(add_lines_img, (x1, y1), (x4, y4), (0, 0, 255), 3)
+                dy = y1 - y2
+                y4 = y1 + int(dy * k)
+                cv2.line(add_lines_img, (x2, y2), (x4, y4), (0, 0, 255), 3)
                 x11, x12, y11, y12 = x1, x3, y1, y3
                 for i in range(len(contours_data)):
                     if index == i:
@@ -546,7 +548,7 @@ def update(dt):
                                             # cv2.line(cls_cnts_img, (x21, y21), (x22, y22), (255, 0, 255), 2)
                                             sorted_contours_idx[list(contours_data.keys())[i]] = "yellow"
                                             # print(index, list(contours_data.keys())[i])
-                                            if list(contours_data.keys())[i] not in sorted_contours_idx.keys():
+                                            if list(contours_data.keys())[i] not in list(sorted_contours_idx.keys())[:-1]:
                                                 find_yellow(i)
                                             break
 
@@ -566,7 +568,77 @@ def update(dt):
                                             # cv2.line(cls_cnts_img, (x21, y21), (x22, y22), (255, 0, 255), 2)
                                             sorted_contours_idx[list(contours_data.keys())[i]] = "yellow"
                                             # print(index, list(contours_data.keys())[i])
-                                            if list(contours_data.keys())[i] not in sorted_contours_idx.keys():
+                                            if list(contours_data.keys())[i] not in list(sorted_contours_idx.keys())[:-1]:
+                                                find_yellow(i)
+                                            break
+                x11, x12, y11, y12 = x2, x4, y2, y4
+                for i in range(len(contours_data)):
+                    if index == i:
+                        continue
+                    approx2 = contours_data[list(contours_data.keys())[i]]["approx"]
+                    for a2 in range(len(approx2)):
+                        [x21, y21] = approx2[(a2 == 0) * len(approx2) + a2 - 1][0]
+                        [x22, y22] = approx2[a2][0]
+                        maxx1 = max(x11, x12)
+                        maxy1 = max(y11, y12)
+                        minx1 = min(x11, x12)
+                        miny1 = min(y11, y12)
+                        maxx2 = max(x21, x22)
+                        maxy2 = max(y21, y22)
+                        minx2 = min(x21, x22)
+                        miny2 = min(y21, y22)
+
+                        if minx1 > maxx2 or maxx1 < minx2 or miny1 > maxy2 or maxy1 < miny2:
+                            continue
+                        else:
+                            dx1 = x12 - x11
+                            dy1 = y12 - y11
+                            dx2 = x22 - x21
+                            dy2 = y22 - y21
+                            dxx = x11 - x21
+                            dyy = y11 - y21
+                            div = int(dy2 * dx1 - dx2 * dy1)
+                            if div == 0:
+                                # print("no intersect 1")
+                                continue
+                            else:
+                                if div > 0:
+                                    mul = int(dx1 * dyy - dy1 * dxx)
+                                    if mul < 0 or mul > div:
+                                        # print("no intersect 2")
+                                        continue
+                                    else:
+                                        mul = int(dx2 * dyy - dy2 * dxx)
+                                        if mul < 0 or mul > div:
+                                            # print("no intersect 3")
+                                            continue
+                                        else:
+                                            # print('intersect')
+                                            # cv2.line(cls_cnts_img, (x11, y11), (x12, y12), (255, 255, 0), 6)
+                                            # cv2.line(cls_cnts_img, (x21, y21), (x22, y22), (255, 0, 255), 2)
+                                            sorted_contours_idx[list(contours_data.keys())[i]] = "yellow"
+                                            # print(index, list(contours_data.keys())[i])
+                                            if list(contours_data.keys())[i] not in list(sorted_contours_idx.keys())[:-1]:
+                                                find_yellow(i)
+                                            break
+
+                                else:
+                                    mul = -int(dx1 * dyy - dy1 * dxx)
+                                    if mul < 0 or mul > -div:
+                                        # print("no intersect 4")
+                                        continue
+                                    else:
+                                        mul = -int(dx2 * dyy - dy2 * dxx)
+                                        if mul < 0 or mul > -div:
+                                            # print("no intersect 5")
+                                            continue
+                                        else:
+                                            # print('intersect')
+                                            # cv2.line(cls_cnts_img, (x11, y11), (x12, y12), (255, 255, 0), 6)
+                                            # cv2.line(cls_cnts_img, (x21, y21), (x22, y22), (255, 0, 255), 2)
+                                            sorted_contours_idx[list(contours_data.keys())[i]] = "yellow"
+                                            # print(index, list(contours_data.keys())[i])
+                                            if list(contours_data.keys())[i] not in list(sorted_contours_idx.keys())[:-1]:
                                                 find_yellow(i)
                                             break
 
