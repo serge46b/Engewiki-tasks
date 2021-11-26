@@ -443,7 +443,10 @@ def update(dt):
             #                 cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 255), 1)
 
     cv2.imshow("cnt colored", contours_colored_img)
-    add_lines_img = copy.deepcopy(contours_colored_img)
+
+    
+
+    """add_lines_img = copy.deepcopy(contours_colored_img)
     sorted_contours_idx = {}
     cls_cnts_img = copy.deepcopy(contours_colored_img)
     if len(contours_data) == 1:
@@ -486,9 +489,9 @@ def update(dt):
             for a in range(len(approx)):
                 [x1, y1] = approx[(a == 0) * len(approx) + a - 1][0]
                 [x2, y2] = approx[a][0]
-                """dist = np.sqrt((x1 - x2) ** 2 + (y1 - y2) ** 2)
+                ""dist = np.sqrt((x1 - x2) ** 2 + (y1 - y2) ** 2)
                 new_dist = dist * 1
-                k = new_dist // dist"""
+                k = new_dist // dist""
                 k = 2  # + (max(y1, y2) == img.shape[0]) * 100
                 dx = x2 - x1
                 x3 = x2 + int(dx * k)
@@ -643,14 +646,14 @@ def update(dt):
                                             break
 
         find_yellow(offset)
-        """while len(sorted_contours_idx) < len(contours_data):
+        while len(sorted_contours_idx) < len(contours_data):
             for i in range(len(contours_data)):
                 if list(contours_data.keys())[i] not in sorted_contours_idx.keys():
                     find_yellow(i)
                     print(sorted_contours_idx.keys(), contours_data.keys(),
                           len(sorted_contours_idx), len(contours_data), sep="\n")
-                    print("--------")"""
-        """for i in range(len(contours_data)):
+                    print("--------")
+        for i in range(len(contours_data)):
             idx = i + offset - (i + offset > len(contours_data) - 1) * len(contours_data)
             approx = contours_data[list(contours_data.keys())[idx]]["approx"]
             # print(approx[0][0], approx[1][0])
@@ -671,7 +674,7 @@ def update(dt):
                 y4 = y1 * int(k + 1) - y2
                 cv2.line(contours_colored_img, (x1, y1), (x4, y4), (0, 0, 255), 3)"""
             # print("-------------")
-    cv2.imshow("add lines", add_lines_img)
+    """cv2.imshow("add lines", add_lines_img)
 
     cls_cnts_img = copy.deepcopy(contours_colored_img)
     for i in sorted_contours_idx:
@@ -680,7 +683,7 @@ def update(dt):
         else:
             cv2.floodFill(cls_cnts_img, None, contours_data[i]["cords"], (255, 255, 255))
 
-    cv2.imshow("classified contours", cls_cnts_img)
+    cv2.imshow("classified contours", cls_cnts_img)"""
 
 
     """min_distances = {}
