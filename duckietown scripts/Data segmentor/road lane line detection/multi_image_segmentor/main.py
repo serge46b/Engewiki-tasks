@@ -364,6 +364,12 @@ def update(dt):
     cv2.imshow("image", img)
     cv2.imshow("segment", seg_img)
 
+    print(counter // 20)
+    counter += 1
+    if counter % 20 == 0:
+        cv2.imwrite("images/img." + str(counter // 20) + ".png", img)
+        cv2.imwrite("masks/img." + str(counter // 20) + ".png", final_mask)
+
     if key_handler[key.F]:
         action = pd_driver(seg_obs, env.unwrapped)
     obs, reward, done, info = env.step(action)
@@ -373,7 +379,16 @@ def update(dt):
         env.reset()
         env.render()
 
+    if counter // 20 > max_dataset_count:
+        dataset_done = True
+
+    if dataset_done:
+        print("dataset is done!")
+        env.close()
+        sys.exit(0)
+
     env.render()
+
 
 
 pyglet.clock.schedule_interval(update, 1.0 / env.unwrapped.frame_rate)
