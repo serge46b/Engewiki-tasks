@@ -67,11 +67,11 @@ def on_key_press(symbol, modifiers):
     elif symbol == key.ESCAPE:
         env.close()
         sys.exit(0)
-    elif symbol == key.RETURN:
+    """elif symbol == key.RETURN:
         print('saving screenshot')
         img = env.render('rgb_array')
         img = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
-        cv2.imwrite('screenshot ' + str(datetime.now().minute) + " " + str(datetime.now().second) + '.jpg', img)
+        cv2.imwrite('screenshot ' + str(datetime.now().minute) + " " + str(datetime.now().second) + '.jpg', img)"""
 
 
 # Register a keyboard handler
@@ -375,7 +375,7 @@ def update(dt):
     kernel = np.ones((5, 5), np.uint8)
     opening_img = cv2.morphologyEx(cut_image, cv2.MORPH_OPEN, kernel)
 
-    # cv2.imshow("opening", opening_img)
+    cv2.imshow("opening", opening_img)
 
     # find all your connected components (white blobs in your image)
     nb_components, output, stats, centroids = cv2.connectedComponentsWithStats(opening_img, connectivity=8)
@@ -853,7 +853,7 @@ def update(dt):
 
     if key_handler[key.RETURN]:
         im = Image.fromarray(observ)
-        im.save("pic.png")
+        im.save(f"pic {counter // 20}.png")
 
     if done:
         print("done!")
