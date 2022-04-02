@@ -24,7 +24,8 @@ import glob
 from gym_duckietown.envs import DuckietownEnv
 
 # env = gym.make("Duckietown-udem1-v0")
-env = DuckietownEnv(map_name="TTIC_large_loop")
+# env = DuckietownEnv(map_name="TTIC_large_loop", domain_rand=False, style="segmentation")
+env = DuckietownEnv(map_name="udem1_empty", domain_rand=False, style="segmentation")
 env.reset()
 env.render()
 
@@ -67,11 +68,11 @@ def on_key_press(symbol, modifiers):
     elif symbol == key.ESCAPE:
         env.close()
         sys.exit(0)
-    """elif symbol == key.RETURN:
+    elif symbol == key.RETURN:
         print('saving screenshot')
         img = env.render('rgb_array')
         img = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
-        cv2.imwrite('screenshot ' + str(datetime.now().minute) + " " + str(datetime.now().second) + '.jpg', img)"""
+        cv2.imwrite('screenshot ' + str(datetime.now().minute) + " " + str(datetime.now().second) + '.jpg', img)
 
 
 # Register a keyboard handler
@@ -83,6 +84,234 @@ prev_step = 0
 flag = 0
 next_move = "forward"
 edge_line_flag = 0
+
+
+observ = np.uint8(np.zeros((480, 640, 3)))
+
+
+def update(dt):
+    global counter, prev_step, observ, flag, dataset_done
+    wheel_distance = 0.102
+    min_rad = 0.08
+
+    action = np.array([0.0, 0.0])
+
+    if key_handler[key.UP]:
+        action += np.array([0.44, 0.0])
+    if key_handler[key.DOWN]:
+        action -= np.array([0.44, 0])
+    if key_handler[key.LEFT]:
+        action += np.array([0, 1])
+    if key_handler[key.RIGHT]:
+        action -= np.array([0, 1])
+    if key_handler[key.SPACE]:
+        action = np.array([0, 0])
+    v1 = action[0]
+    v2 = action[1]
+    # Limit radius of curvature
+    if v1 == 0 or abs(v2 / v1) > (min_rad + wheel_distance / 2.0) / (min_rad - wheel_distance / 2.0):
+        # adjust velocities evenly such that condition is fulfilled
+        delta_v = (v2 - v1) / 2 - wheel_distance / (4 * min_rad) * (v1 + v2)
+        v1 += delta_v
+        v2 -= delta_v
+
+    action[0] = v1
+    action[1] = v2
+
+    # Speed boost
+    if key_handler[key.LSHIFT]:
+        action *= 1.5
+
+    env.step(action)
+
+    # print(round(env.cur_pos[0], 2), round(env.cur_pos[2], 2))
+    # print("step_count = %s, reward=%.3f" % (env.unwrapped.step_count, reward))
+    img = cv2.cvtColor(observ, cv2.COLOR_BGR2RGB)
+    # cv2.imshow("original", img)
+    # image = cv2.imread("strawberry.jpg")
+    # imageSegment = None
+    """spatialRadius = 15
+    colorRadius = 30
+    pyramidLevels = 3
+    imageSegment = cv2.pyrMeanShiftFiltering(img, None, spatialRadius, colorRadius, pyramidLevels)
+    cv2.imshow("MeanShift", imageSegment)
+    # split g,b,r
+    clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
+    g = imageSegment[:, :, 0]
+    g2 = clahe.apply(g)
+    b = imageSegment[:, :, 1]
+    b2 = clahe.apply(b)
+    r = imageSegment[:, :, 2]
+    r2 = clahe.apply(r)
+    # Histogram Equalization
+    ""r2 = cv2.equalizeHist(r)
+    g2 = cv2.equalizeHist(g)
+    b2 = cv2.equalizeHist(b)""
+    img_norm = imageSegment.copy()
+    img_norm[:, :, 0] = g2
+    img_norm[:, :, 1] = b2
+    img_norm[:, :, 2] = r2
+    cv2.imshow("normalized", img_norm)
+
+    img = img_norm"""
+
+    cutout_img = np.zeros_like(img)
+    # print(cutout_img.shape)
+    """
+    cv2.line(cutout_img, (75, 210), (565, 210), (255, 255, 255), 4)
+    cv2.line(cutout_img, (0, 350), (75, 210), (255, 255, 255), 4)
+    cv2.line(cutout_img, (640, 350), (565, 210), (255, 255, 255), 4)"""
+
+    cv2.line(cutout_img, (0, 210), (640, 210), (255, 255, 255), 4)
+    cv2.floodFill(cutout_img, None, (639, 479), (255, 255, 255))
+
+    # cv2.imshow("cutout", cutout_img)
+
+    # white_mask = cv2.inRange(out, (22, 75, 82), (255, 255, 255))
+    gray = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
+    # cv2.imshow("gray", gray)
+
+    # _, th_img1 = cv2.threshold(obs, 127, 255, cv2.THRESH_BINARY)
+    # cv2.imshow("threshold 1", th_img1)
+
+    _, th_img = cv2.threshold(gray, 80, 255, cv2.THRESH_BINARY)
+    # th_img1 = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY_INV, 15, 4)
+    # cv2.imshow("threshold", th_img)
+
+    # cutted_image = np.zeros_like(img)
+    cutout_img = cv2.cvtColor(cutout_img, cv2.COLOR_RGB2GRAY)
+    # cv2.imshow("cutout", cutout_img)
+    # cv2.imshow("threshold", th_img)
+
+    # cut_image = cv2.bitwise_and(th_img, cutout_img)
+    cut_image = th_img
+    cv2.imshow("cut threshold", cut_image)
+
+    kernel = np.ones((5, 5), np.uint8)
+    opening_img = cv2.morphologyEx(th_img, cv2.MORPH_OPEN, kernel)
+
+    # cv2.imshow("opening", opening_img)
+
+    # find all your connected components (white blobs in your image)
+    nb_components, output, stats, centroids = cv2.connectedComponentsWithStats(opening_img, connectivity=8)
+    # connectedComponentswithStats yields every seperated component with information on each of them, such as size
+    # the following part is just taking out the background which is also considered a component, but most of the time we don't want that.
+    sizes = stats[1:, -1]
+    nb_components = nb_components - 1
+
+    # minimum size of particles we want to keep (number of pixels)
+    # here, it's a fixed value, but you can set it as you want, eg the mean of the sizes or whatever
+    min_size = 200
+
+    # your answer image
+    filtered_img = np.zeros(output.shape)
+    # for every component in the image, you keep it only if it's above min_size
+    for i in range(0, nb_components):
+        if sizes[i] >= min_size:
+            filtered_img[output == i + 1] = 255
+
+    # cv2.imshow("filtered", filtered_img)
+
+    filtered_img = np.uint8(filtered_img * 255)
+
+    contours, hierarchy = cv2.findContours(filtered_img, cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
+
+    # print(len(contours), final_mask.shape)
+    final_mask = np.zeros_like(img)
+    contours_on_orig_img = copy.deepcopy(img)
+    # contours_colored_img = np.zeros_like(img, dtype=np.uint8)
+    contours_colored_img_v2 = np.zeros_like(img, dtype=np.uint8)
+    cv2.drawContours(contours_on_orig_img, contours, -1, (0, 255, 0), 2)
+    centers_on_orig_img = copy.deepcopy(contours_on_orig_img)
+    center_cords = []
+    contours_data = {}
+    for c in range(len(contours)):
+        m = cv2.moments(contours[c])
+        cx = int(m["m10"] / m["m00"])
+        cy = int(m["m01"] / m["m00"])
+        center_cords.append([cx, cy])
+        cv2.circle(centers_on_orig_img, (cx, cy), 1, (0, 0, 255), 3)
+        approx = cv2.approxPolyDP(contours[c], 0.008 * cv2.arcLength(contours[c], True), True)
+        if not (250 < cv2.contourArea(approx) < 30000):
+            continue
+        mask = np.zeros_like(th_img, dtype=np.uint8)
+        # color_rgb = img[cy, cx, ::]
+        # cv2.drawContours(contours_colored_img, [approx], 0, tuple([int(i) for i in color_rgb]), 3)
+        cv2.drawContours(mask, [approx], 0, 255, -1)
+        mean_col = cv2.mean(img, mask=mask)
+        mean_col = tuple([int(mean_col[i]) for i in range(3)])
+        cv2.drawContours(contours_colored_img_v2, [approx], 0, mean_col, 3)
+        color_hsv = cv2.cvtColor(np.array([[mean_col]], dtype=np.uint8), cv2.COLOR_RGB2HSV)[0][0]
+        contours_data[c] = {"clr": [int(i) for i in color_hsv], "ccr": [cx, cy], "apr": approx}
+
+    cv2.imshow("cnt colored v2", contours_colored_img_v2)
+
+    if len(contours_data) > 1:
+        for i in range(len(contours_data)):
+            pass
+
+    if len(center_cords) > 1:
+        min_dist = math.sqrt(
+            (center_cords[1][0] - center_cords[0][0]) ** 2 + (center_cords[1][1] - center_cords[0][1]) ** 2)
+        for i in range(1, len(center_cords)):
+            distX = center_cords[i][0] - center_cords[i - 1][0]
+            distY = center_cords[i][1] - center_cords[i - 1][1]
+            dist = math.sqrt(distX ** 2 + distY ** 2)
+            if dist < min_dist:
+                min_dist = dist
+        if min_dist > 25:
+            print("allowed", counter // 20)
+            cv2.drawContours(final_mask, contours, -1, (1, 1, 1), 2)
+            for i in range(len(center_cords)):
+                fillX = center_cords[i][0]
+                fillY = center_cords[i][1]
+                cv2.floodFill(final_mask, None, (fillX, fillY), (1, 1, 1))
+            counter += 1
+            if counter % 20 == 0:
+                cv2.imwrite("images/img." + str(counter // 20) + ".png", img)
+                cv2.imwrite("masks/img." + str(counter // 20) + ".png", final_mask)
+        else:
+            print("denied", counter // 20)
+
+    # cv2.imshow('contours', img)  # вывод обработанного кадра в окно
+    cv2.imshow("contours and centers", centers_on_orig_img)
+
+    # cv2.imshow("final mask", final_mask)
+    if key_handler[key.F]:
+        action = pd_driver(observ, env.unwrapped)
+    observ, reward, done, info = env.step(action)
+
+    # white_mask = cv2.inRange(cutted_image, (10, 29, 77), (101, 84, 171))
+    # cv2.imshow("white mask", white_mask)
+
+    if key_handler[key.RETURN]:
+        im = Image.fromarray(observ)
+        im.save("pic.png")
+
+    if done:
+        print("done!")
+        flag = 0
+        env.reset()
+        env.render()
+
+    if counter // 20 > max_dataset_count:
+        dataset_done = True
+
+    if dataset_done:
+        print("dataset is done!")
+        env.close()
+        sys.exit(0)
+
+    env.render()
+
+
+pyglet.clock.schedule_interval(update, 1.0 / env.unwrapped.frame_rate)
+
+
+pyglet.app.run()
+
+# Enter main event loop
+env.close()
 
 
 def pd_driver(obs, unwrapped_env):
@@ -296,585 +525,3 @@ def pd_driver(obs, unwrapped_env):
     # prev_delta = delta
     # print(delta)
     return action
-
-
-observ = np.uint8(np.zeros((480, 640, 3)))
-
-
-def update(dt):
-    global counter, prev_step, observ, flag, dataset_done
-    wheel_distance = 0.102
-    min_rad = 0.08
-
-    action = np.array([0.0, 0.0])
-
-    if key_handler[key.UP]:
-        action += np.array([0.44, 0.0])
-    if key_handler[key.DOWN]:
-        action -= np.array([0.44, 0])
-    if key_handler[key.LEFT]:
-        action += np.array([0, 1])
-    if key_handler[key.RIGHT]:
-        action -= np.array([0, 1])
-    if key_handler[key.SPACE]:
-        action = np.array([0, 0])
-    v1 = action[0]
-    v2 = action[1]
-    # Limit radius of curvature
-    if v1 == 0 or abs(v2 / v1) > (min_rad + wheel_distance / 2.0) / (min_rad - wheel_distance / 2.0):
-        # adjust velocities evenly such that condition is fulfilled
-        delta_v = (v2 - v1) / 2 - wheel_distance / (4 * min_rad) * (v1 + v2)
-        v1 += delta_v
-        v2 -= delta_v
-
-    action[0] = v1
-    action[1] = v2
-
-    # Speed boost
-    if key_handler[key.LSHIFT]:
-        action *= 1.5
-
-    env.step(action)
-
-    # print(round(env.cur_pos[0], 2), round(env.cur_pos[2], 2))
-    # print("step_count = %s, reward=%.3f" % (env.unwrapped.step_count, reward))
-    img = cv2.cvtColor(observ, cv2.COLOR_BGR2RGB)
-    # cv2.imshow("original", img)
-    cutout_img = np.zeros_like(img)
-    # print(cutout_img.shape)
-    """
-    cv2.line(cutout_img, (75, 210), (565, 210), (255, 255, 255), 4)
-    cv2.line(cutout_img, (0, 350), (75, 210), (255, 255, 255), 4)
-    cv2.line(cutout_img, (640, 350), (565, 210), (255, 255, 255), 4)"""
-
-    cv2.line(cutout_img, (0, 210), (640, 210), (255, 255, 255), 4)
-    cv2.floodFill(cutout_img, None, (639, 479), (255, 255, 255))
-
-    # cv2.imshow("cutout", cutout_img)
-
-    # white_mask = cv2.inRange(out, (22, 75, 82), (255, 255, 255))
-    gray = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
-    # cv2.imshow("gray", gray)
-
-    # _, th_img1 = cv2.threshold(obs, 127, 255, cv2.THRESH_BINARY)
-    # cv2.imshow("threshold 1", th_img1)
-
-    _, th_img = cv2.threshold(gray, 80, 255, cv2.THRESH_BINARY)
-    # th_img1 = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY_INV, 15, 4)
-    # cv2.imshow("threshold", th_img)
-
-    # cutted_image = np.zeros_like(img)
-    cutout_img = cv2.cvtColor(cutout_img, cv2.COLOR_RGB2GRAY)
-    # cv2.imshow("cutout", cutout_img)
-    # cv2.imshow("threshold", th_img)
-
-    cut_image = cv2.bitwise_and(th_img, cutout_img)
-    # cut_image = th_img
-    cv2.imshow("cut threshold", cut_image)
-
-    kernel = np.ones((5, 5), np.uint8)
-    opening_img = cv2.morphologyEx(cut_image, cv2.MORPH_OPEN, kernel)
-
-    cv2.imshow("opening", opening_img)
-
-    # find all your connected components (white blobs in your image)
-    nb_components, output, stats, centroids = cv2.connectedComponentsWithStats(opening_img, connectivity=8)
-    # connectedComponentswithStats yields every seperated component with information on each of them, such as size
-    # the following part is just taking out the background which is also considered a component, but most of the time we don't want that.
-    sizes = stats[1:, -1]
-    nb_components = nb_components - 1
-
-    # minimum size of particles we want to keep (number of pixels)
-    # here, it's a fixed value, but you can set it as you want, eg the mean of the sizes or whatever
-    min_size = 200
-
-    # your answer image
-    filtered_img = np.zeros(output.shape)
-    # for every component in the image, you keep it only if it's above min_size
-    for i in range(0, nb_components):
-        if sizes[i] >= min_size:
-            filtered_img[output == i + 1] = 255
-
-    # cv2.imshow("filtered", filtered_img)
-
-    filtered_img = np.uint8(filtered_img * 255)
-
-    contours, hierarchy = cv2.findContours(filtered_img, cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
-
-    # print(len(contours), final_mask.shape)
-    final_mask = np.zeros_like(img)
-    contours_on_orig_img = copy.deepcopy(img)
-    contours_colored_img = np.zeros_like(img, dtype=np.uint8)
-
-    cv2.drawContours(contours_on_orig_img, contours, -1, (0, 255, 0), 2)
-    centers_on_orig_img = copy.deepcopy(contours_on_orig_img)
-    center_cords = []
-    contours_data = {}
-    min_max_h = [255, 0]
-    for c in range(len(contours)):
-        m = cv2.moments(contours[c])
-        cx = int(m["m10"] / m["m00"])
-        cy = int(m["m01"] / m["m00"])
-        center_cords.append([cx, cy])
-        cv2.circle(centers_on_orig_img, (cx, cy), 1, (0, 0, 255), 3)
-        approx = cv2.approxPolyDP(contours[c], 0.008 * cv2.arcLength(contours[c], True), True)
-        if not (250 < cv2.contourArea(approx) < 30000):
-            continue
-        color_rgb = img[cy, cx, ::]
-        color_hsv = cv2.cvtColor(np.array([[color_rgb]]), cv2.COLOR_RGB2HSV)[0][0]
-        if color_hsv[2] > 70:
-            cv2.drawContours(contours_colored_img, [approx], 0, tuple([int(i) for i in color_rgb]), 3)
-            contours_data[c] = {"color": [int(i) for i in color_hsv], "cords": [cx, cy], "approx": approx}
-
-            # contours_data[c] = [color_hsv[1], cx, cy]
-            # if min_max_h[1] > color_hsv[1]:
-            #     min_max_h[1] = color_hsv[1]
-            # if min_max_h[0] < color_hsv[1]:
-            #     min_max_h[0] = color_hsv[1]
-            # if color_hsv[1] < 125:
-            #     text = f"White {color_hsv[1]}"
-            #     text_size = cv2.getTextSize(text, cv2.FONT_HERSHEY_SIMPLEX, 0.5, 1)[0]
-            #     cv2.putText(contours_colored_img, text, (cx - text_size[0] // 2, cy - text_size[1] // 2),
-            #                 cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
-            # else:
-            #    text = f"yellow {color_hsv[1]}"
-            #    text_size = cv2.getTextSize(text, cv2.FONT_HERSHEY_SIMPLEX, 0.5, 1)[0]
-            #     cv2.putText(contours_colored_img, text, (cx - text_size[0] // 2, cy - text_size[1] // 2),
-            #                 cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 255), 1)
-
-    cv2.imshow("cnt colored", contours_colored_img)
-
-    
-
-    """add_lines_img = copy.deepcopy(contours_colored_img)
-    sorted_contours_idx = {}
-    cls_cnts_img = copy.deepcopy(contours_colored_img)
-    if len(contours_data) == 1:
-        sorted_contours_idx[list(contours_data.keys())[0]] = "white"
-    elif len(contours_data) == 2:
-        min_s = {"s": contours_data[list(contours_data.keys())[0]]["color"][1], "idx": list(contours_data.keys())[0]}
-        max_s = {"s": 0, "idx": 0}
-        for i in contours_data:
-            s = contours_data[i]["color"][1]
-            if s < min_s["s"]:
-                min_s["s"] = s
-                min_s["idx"] = i
-            elif s > max_s["s"]:
-                max_s["s"] = s
-                max_s["idx"] = i
-        sorted_contours_idx[min_s["idx"]] = "white"
-        sorted_contours_idx[max_s["idx"]] = "yellow"
-    elif len(contours_data) > 0:
-        min_s = {"s": contours_data[list(contours_data.keys())[0]]["color"][1], "idx": list(contours_data.keys())[0]}
-        max_s = {"s": 0, "idx": 0}
-        for i in contours_data:
-            s = contours_data[i]["color"][1]
-            if s < min_s["s"]:
-                min_s["s"] = s
-                min_s["idx"] = i
-            elif s > max_s["s"]:
-                max_s["s"] = s
-                max_s["idx"] = i
-        sorted_contours_idx[min_s["idx"]] = "white"
-        sorted_contours_idx[max_s["idx"]] = "yellow"
-        offset = 0
-        for i in range(len(contours_data)):
-            if list(contours_data.keys())[i] == max_s["idx"]:
-                offset = i
-                break
-
-        def find_yellow(index):
-            approx = contours_data[list(contours_data.keys())[index]]["approx"]
-            # print(approx[0][0], approx[1][0])
-            for a in range(len(approx)):
-                [x1, y1] = approx[(a == 0) * len(approx) + a - 1][0]
-                [x2, y2] = approx[a][0]
-                ""dist = np.sqrt((x1 - x2) ** 2 + (y1 - y2) ** 2)
-                new_dist = dist * 1
-                k = new_dist // dist""
-                k = 2  # + (max(y1, y2) == img.shape[0]) * 100
-                dx = x2 - x1
-                x3 = x2 + int(dx * k)
-                dy = y2 - y1
-                y3 = y2 + int(dy * k)
-                cv2.line(add_lines_img, (x1, y1), (x3, y3), (0, 255, 0), 3)
-
-                dx = x1 - x2
-                x4 = x1 + int(dx * k)
-                dy = y1 - y2
-                y4 = y1 + int(dy * k)
-                cv2.line(add_lines_img, (x2, y2), (x4, y4), (0, 0, 255), 3)
-                x11, x12, y11, y12 = x1, x3, y1, y3
-                for i in range(len(contours_data)):
-                    if index == i:
-                        continue
-                    approx2 = contours_data[list(contours_data.keys())[i]]["approx"]
-                    for a2 in range(len(approx2)):
-                        [x21, y21] = approx2[(a2 == 0) * len(approx2) + a2 - 1][0]
-                        [x22, y22] = approx2[a2][0]
-                        maxx1 = max(x11, x12)
-                        maxy1 = max(y11, y12)
-                        minx1 = min(x11, x12)
-                        miny1 = min(y11, y12)
-                        maxx2 = max(x21, x22)
-                        maxy2 = max(y21, y22)
-                        minx2 = min(x21, x22)
-                        miny2 = min(y21, y22)
-
-                        if minx1 > maxx2 or maxx1 < minx2 or miny1 > maxy2 or maxy1 < miny2:
-                            continue
-                        else:
-                            dx1 = x12 - x11
-                            dy1 = y12 - y11
-                            dx2 = x22 - x21
-                            dy2 = y22 - y21
-                            dxx = x11 - x21
-                            dyy = y11 - y21
-                            div = int(dy2 * dx1 - dx2 * dy1)
-                            if div == 0:
-                                # print("no intersect 1")
-                                continue
-                            else:
-                                if div > 0:
-                                    mul = int(dx1 * dyy - dy1 * dxx)
-                                    if mul < 0 or mul > div:
-                                        # print("no intersect 2")
-                                        continue
-                                    else:
-                                        mul = int(dx2 * dyy - dy2 * dxx)
-                                        if mul < 0 or mul > div:
-                                            # print("no intersect 3")
-                                            continue
-                                        else:
-                                            # print('intersect')
-                                            # cv2.line(cls_cnts_img, (x11, y11), (x12, y12), (255, 255, 0), 6)
-                                            # cv2.line(cls_cnts_img, (x21, y21), (x22, y22), (255, 0, 255), 2)
-                                            sorted_contours_idx[list(contours_data.keys())[i]] = "yellow"
-                                            # print(index, list(contours_data.keys())[i])
-                                            if list(contours_data.keys())[i] not in list(sorted_contours_idx.keys())[:-1]:
-                                                find_yellow(i)
-                                            break
-
-                                else:
-                                    mul = -int(dx1 * dyy - dy1 * dxx)
-                                    if mul < 0 or mul > -div:
-                                        # print("no intersect 4")
-                                        continue
-                                    else:
-                                        mul = -int(dx2 * dyy - dy2 * dxx)
-                                        if mul < 0 or mul > -div:
-                                            # print("no intersect 5")
-                                            continue
-                                        else:
-                                            # print('intersect')
-                                            # cv2.line(cls_cnts_img, (x11, y11), (x12, y12), (255, 255, 0), 6)
-                                            # cv2.line(cls_cnts_img, (x21, y21), (x22, y22), (255, 0, 255), 2)
-                                            sorted_contours_idx[list(contours_data.keys())[i]] = "yellow"
-                                            # print(index, list(contours_data.keys())[i])
-                                            if list(contours_data.keys())[i] not in list(sorted_contours_idx.keys())[:-1]:
-                                                find_yellow(i)
-                                            break
-                x11, x12, y11, y12 = x2, x4, y2, y4
-                for i in range(len(contours_data)):
-                    if index == i:
-                        continue
-                    approx2 = contours_data[list(contours_data.keys())[i]]["approx"]
-                    for a2 in range(len(approx2)):
-                        [x21, y21] = approx2[(a2 == 0) * len(approx2) + a2 - 1][0]
-                        [x22, y22] = approx2[a2][0]
-                        maxx1 = max(x11, x12)
-                        maxy1 = max(y11, y12)
-                        minx1 = min(x11, x12)
-                        miny1 = min(y11, y12)
-                        maxx2 = max(x21, x22)
-                        maxy2 = max(y21, y22)
-                        minx2 = min(x21, x22)
-                        miny2 = min(y21, y22)
-
-                        if minx1 > maxx2 or maxx1 < minx2 or miny1 > maxy2 or maxy1 < miny2:
-                            continue
-                        else:
-                            dx1 = x12 - x11
-                            dy1 = y12 - y11
-                            dx2 = x22 - x21
-                            dy2 = y22 - y21
-                            dxx = x11 - x21
-                            dyy = y11 - y21
-                            div = int(dy2 * dx1 - dx2 * dy1)
-                            if div == 0:
-                                # print("no intersect 1")
-                                continue
-                            else:
-                                if div > 0:
-                                    mul = int(dx1 * dyy - dy1 * dxx)
-                                    if mul < 0 or mul > div:
-                                        # print("no intersect 2")
-                                        continue
-                                    else:
-                                        mul = int(dx2 * dyy - dy2 * dxx)
-                                        if mul < 0 or mul > div:
-                                            # print("no intersect 3")
-                                            continue
-                                        else:
-                                            # print('intersect')
-                                            # cv2.line(cls_cnts_img, (x11, y11), (x12, y12), (255, 255, 0), 6)
-                                            # cv2.line(cls_cnts_img, (x21, y21), (x22, y22), (255, 0, 255), 2)
-                                            sorted_contours_idx[list(contours_data.keys())[i]] = "yellow"
-                                            # print(index, list(contours_data.keys())[i])
-                                            if list(contours_data.keys())[i] not in list(sorted_contours_idx.keys())[:-1]:
-                                                find_yellow(i)
-                                            break
-
-                                else:
-                                    mul = -int(dx1 * dyy - dy1 * dxx)
-                                    if mul < 0 or mul > -div:
-                                        # print("no intersect 4")
-                                        continue
-                                    else:
-                                        mul = -int(dx2 * dyy - dy2 * dxx)
-                                        if mul < 0 or mul > -div:
-                                            # print("no intersect 5")
-                                            continue
-                                        else:
-                                            # print('intersect')
-                                            # cv2.line(cls_cnts_img, (x11, y11), (x12, y12), (255, 255, 0), 6)
-                                            # cv2.line(cls_cnts_img, (x21, y21), (x22, y22), (255, 0, 255), 2)
-                                            sorted_contours_idx[list(contours_data.keys())[i]] = "yellow"
-                                            # print(index, list(contours_data.keys())[i])
-                                            if list(contours_data.keys())[i] not in list(sorted_contours_idx.keys())[:-1]:
-                                                find_yellow(i)
-                                            break
-
-        find_yellow(offset)
-        while len(sorted_contours_idx) < len(contours_data):
-            for i in range(len(contours_data)):
-                if list(contours_data.keys())[i] not in sorted_contours_idx.keys():
-                    find_yellow(i)
-                    print(sorted_contours_idx.keys(), contours_data.keys(),
-                          len(sorted_contours_idx), len(contours_data), sep="\n")
-                    print("--------")
-        for i in range(len(contours_data)):
-            idx = i + offset - (i + offset > len(contours_data) - 1) * len(contours_data)
-            approx = contours_data[list(contours_data.keys())[idx]]["approx"]
-            # print(approx[0][0], approx[1][0])
-            for a in range(len(approx)):
-                [x1, y1] = approx[(a == 0) * len(approx) + a - 1][0]
-                [x2, y2] = approx[a][0]
-                ""dist = np.sqrt((x1 - x2) ** 2 + (y1 - y2) ** 2)
-                new_dist = dist * 1
-                k = new_dist // dist""
-                k = 1.5  # + (max(y1, y2) == img.shape[0]) * 100
-                dx = x2 - x1
-                x3 = x2 + int(dx * k)
-                y3 = y2 * int(k + 1) - y1
-                cv2.line(contours_colored_img, (x1, y1), (x3, y3), (0, 255, 0), 3)
-
-                dx = x1 - x2
-                x4 = x1 + int(dx * k)
-                y4 = y1 * int(k + 1) - y2
-                cv2.line(contours_colored_img, (x1, y1), (x4, y4), (0, 0, 255), 3)"""
-            # print("-------------")
-    """cv2.imshow("add lines", add_lines_img)
-
-    cls_cnts_img = copy.deepcopy(contours_colored_img)
-    for i in sorted_contours_idx:
-        if sorted_contours_idx[i] == "yellow":
-            cv2.floodFill(cls_cnts_img, None, contours_data[i]["cords"], (0, 255, 255))
-        else:
-            cv2.floodFill(cls_cnts_img, None, contours_data[i]["cords"], (255, 255, 255))
-
-    cv2.imshow("classified contours", cls_cnts_img)"""
-
-
-    """min_distances = {}
-    median_dist = []
-    for i in range(len(contours_data)):
-        # color = contours_data[list(contours_data.keys())[i]][0]
-        # center = contours_data[list(contours_data.keys())[i]][1]
-        approx = contours_data[list(contours_data.keys())[i]][2]
-        min_distance = img.shape[0]
-        orig_min_cords = [0, 0]
-        cmp_min_cords = [0, 0]
-        min_idx = 0
-        for j in range(i + 1, len(contours_data)):
-            # color2 = contours_data[list(contours_data.keys())[j]][0]
-            # center2 = contours_data[list(contours_data.keys())[j]][1]
-            approx2 = contours_data[list(contours_data.keys())[j]][2]
-            for a in range(len(approx)):
-                [x, y] = approx[a][0]
-                for a2 in range(len(approx2)):
-                    [x2, y2] = approx2[a2][0]
-                    dist = np.sqrt((x - x2) ** 2 + (y - y2) ** 2)
-                    if min_distance > dist:
-                        min_distance = dist
-                        orig_min_cords = [x, y]
-                        cmp_min_cords = [x2, y2]
-                        min_idx = j
-        median_dist.append(min_distance)
-        min_distances[list(contours_data.keys())[i]] = {"cmp_point_idx": list(contours_data.keys())[min_idx],
-                                                        "min_distance": min_distance,
-                                                        "orig_point_cords": orig_min_cords,
-                                                        "cmp_point_cords": cmp_min_cords}
-    if len(median_dist) != 0:
-        median_dist = statistics.mean(median_dist)
-    else:
-        median_dist = 0
-    for i in min_distances:
-        color = (0, int(255 * (min_distances[i]["min_distance"] < median_dist)),
-                 int(255 * (min_distances[i]["min_distance"] > median_dist)))
-        cv2.line(contours_colored_img, min_distances[i]["orig_point_cords"],
-                 min_distances[i]["cmp_point_cords"], color, 3)
-    cv2.imshow("min distances", contours_colored_img)"""
-
-    """cnt_colored_cords_img = np.uint8(np.zeros((280, 280)))
-    for i in contours_data:
-        val = contours_data[i][0]
-        # val = [100, 100, 200]
-        for j in range(val[0], val[0]+25):
-            for g in range(val[1], val[1]+25):
-                cnt_colored_cords_img[j][g] = val[2]
-    cv2.imshow("cnt colored img to coordinates", cnt_colored_cords_img)
-
-    if len(contours_data) >= 2:
-        data_for_clusterer = []
-        for i in contours_data:
-            val = contours_data[i][0]
-            # val = [100, 100, 200]
-            data_for_clusterer.append(val)
-
-        clusterer = k_means(data_for_clusterer, n_clusters=2)
-        #clusterer.fit_predict(data_for_clusterer)
-        # cnt_colored_clustered = clusterer.fit_predict(data_for_clusterer)
-        cnt_colored_clustered_img = cv2.cvtColor(np.uint8(np.zeros((280, 280, 3))), cv2.COLOR_RGB2HSV)
-        contours_colored_img = cv2.cvtColor(contours_colored_img, cv2.COLOR_RGB2HSV)
-        print(clusterer[1])
-        for i in range(len(contours_data)):
-            val = contours_data[list(contours_data.keys())[i]][0]
-            # val = [100, 100, 200]
-            color = (clusterer[1][i] * 255, 125, val[2])
-            for j in range(val[0], val[0] + 25):
-                for g in range(val[1], val[1] + 25):
-                    cnt_colored_clustered_img[j][g] = color
-            m = cv2.moments(contours[list(contours_data.keys())[i]])
-            cx = int(m["m10"] / m["m00"])
-            cy = int(m["m01"] / m["m00"])
-            center_cords.append([cx, cy])
-            color = tuple([int(c) for c in color])
-            cv2.floodFill(contours_colored_img, None, (cx, cy), color)
-
-        cv2.imshow("cnt colored clustered img", cnt_colored_clustered_img)
-        cv2.imshow("filled contours colored clustered img", contours_colored_img)
-
-        print("number of cluster found: {}".format(len(set(clusterer[1]))))
-
-    cnt_colored_cords_img = np.uint8(np.zeros((img.shape[0] + 25, img.shape[1] + 25)))
-    for i in contours_data:
-        val = contours_data[i]
-        # val = [100, 100, 200]
-        for j in range(val[1][0], val[1][0] + 25):
-            for g in range(val[1][1], val[1][1] + 25):
-                cnt_colored_cords_img[g][j] = abs(255 - val[0][1] * 2)
-    cv2.imshow("cnt colored img to coordinates", cnt_colored_cords_img)
-
-    if len(contours_data) >= 2:
-        data_for_clusterer = []
-        for i in contours_data:
-            val = [contours_data[i][0][1], contours_data[i][1][0], contours_data[i][1][1]]
-            # val = [100, 100, 200]
-            data_for_clusterer.append(val)
-
-        # clusterer = k_means(data_for_clusterer, n_clusters=2)
-        # clusterer = clustering_algorithm(eps=200, min_samples=1)
-        clusterer = clustering_algorithm()
-        clusterer.fit_predict(data_for_clusterer)
-        # cnt_colored_clustered = clusterer.fit_predict(data_for_clusterer)
-        cnt_colored_clustered_img = cv2.cvtColor(np.uint8(np.zeros((img.shape[0] + 25, img.shape[1] + 25, 3))), cv2.COLOR_RGB2HSV)
-        contours_colored_img = cv2.cvtColor(contours_colored_img, cv2.COLOR_RGB2HSV)
-        print(clusterer.labels_)
-        for i in range(len(contours_data)):
-            val = [contours_data[list(contours_data.keys())[i]][0][1],
-                   contours_data[list(contours_data.keys())[i]][1][0],
-                   contours_data[list(contours_data.keys())[i]][1][1]]
-            # val = [100, 100, 200]
-            color = (clusterer.labels_[i] * 75, 125, 125)
-            for j in range(val[1], val[1] + 25):
-                for g in range(val[2], val[2] + 25):
-                    cnt_colored_clustered_img[g][j] = color
-            m = cv2.moments(contours[list(contours_data.keys())[i]])
-            cx = int(m["m10"] / m["m00"])
-            cy = int(m["m01"] / m["m00"])
-            center_cords.append([cx, cy])
-            color = tuple([int(c) for c in color])
-            cv2.floodFill(contours_colored_img, None, (cx, cy), color)
-
-        cv2.imshow("cnt colored clustered img", cnt_colored_clustered_img)
-        cv2.imshow("filled contours colored clustered img", contours_colored_img)
-
-        # print("number of cluster found: {}".format(len(set(clusterer[1]))))"""
-
-    # print('cluster for each point: ', clusterer.labels_)
-    # contours_colored_img_norm = np.zeros_like(contours_colored_img)
-    # cv2.normalize(contours_colored_img, contours_colored_img_norm, 0, 255, cv2.NORM_MINMAX)
-    # cv2.imshow('cnt colored normalized', contours_colored_img_norm)
-
-    if len(center_cords) > 1:
-        min_dist = math.sqrt(
-            (center_cords[1][0] - center_cords[0][0]) ** 2 + (center_cords[1][1] - center_cords[0][1]) ** 2)
-        for i in range(1, len(center_cords)):
-            distX = center_cords[i][0] - center_cords[i - 1][0]
-            distY = center_cords[i][1] - center_cords[i - 1][1]
-            dist = math.sqrt(distX ** 2 + distY ** 2)
-            if dist < min_dist:
-                min_dist = dist
-        if min_dist > 25:
-            print("allowed", counter // 20)
-            cv2.drawContours(final_mask, contours, -1, (1, 1, 1), 2)
-            for i in range(len(center_cords)):
-                fillX = center_cords[i][0]
-                fillY = center_cords[i][1]
-                cv2.floodFill(final_mask, None, (fillX, fillY), (1, 1, 1))
-            counter += 1
-            if counter % 20 == 0:
-                cv2.imwrite("images/img." + str(counter // 20) + ".png", img)
-                cv2.imwrite("masks/img." + str(counter // 20) + ".png", final_mask)
-        else:
-            print("denied", counter // 20)
-
-    # cv2.imshow('contours', img)  # вывод обработанного кадра в окно
-    cv2.imshow("contours and centers", centers_on_orig_img)
-
-    # cv2.imshow("final mask", final_mask)
-    if key_handler[key.F]:
-        action = pd_driver(observ, env.unwrapped)
-    observ, reward, done, info = env.step(action)
-
-    # white_mask = cv2.inRange(cutted_image, (10, 29, 77), (101, 84, 171))
-    # cv2.imshow("white mask", white_mask)
-
-    if key_handler[key.RETURN]:
-        im = Image.fromarray(observ)
-        im.save(f"pic {counter // 20}.png")
-
-    if done:
-        print("done!")
-        flag = 0
-        env.reset()
-        env.render()
-
-    if counter // 20 > max_dataset_count:
-        dataset_done = True
-
-    if dataset_done:
-        print("dataset is done!")
-        env.close()
-        sys.exit(0)
-
-    env.render()
-
-
-pyglet.clock.schedule_interval(update, 1.0 / env.unwrapped.frame_rate)
-
-# Enter main event loop
-pyglet.app.run()
-
-env.close()
