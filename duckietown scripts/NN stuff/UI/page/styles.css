@@ -1,0 +1,289 @@
+:root {
+    --outer-round-dia: 1em;
+    --tab-color: hsl(39, 95%, 40%);
+    --tab-hover-color: hsl(39, 100%, 75%);
+    --tab-active-color: white;
+    --grid-spacing: 10px;
+}
+
+body {
+    margin: 0;
+}
+
+/* Nav bar styles */
+#nav_bar {
+    background-color: orange;
+    height: 4vh;
+}
+
+#nav_bar ul {
+    margin-block-start: 0;
+    margin-block-end: 0;
+    padding-inline-start: 0;
+    height: inherit;
+    margin: 0;
+    list-style: none;
+    display: flex;
+    justify-content: space-around;
+    align-items: flex-end;
+    flex-direction: row;
+    align-content: center;
+}
+
+#nav_bar ul li {
+    position: relative;
+    width: 45vw;
+    padding-top: 0.75vh;
+    padding-bottom: 0.15vh;
+    height: 2.25vh;
+    text-align: center;
+    background-color: var(--tab-color);
+    font-size: 1.625vh;
+    border-radius: 0.75em 0.75em 0 0;
+    color: white;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    z-index: 1;
+
+    transition: background ease 250ms, color ease 250ms;
+    user-select: none;
+}
+
+
+#nav_bar ul li::before {
+    content: '';
+    background-color: transparent;
+    position: absolute;
+    top: calc(3vh - var(--outer-round-dia));
+    right: calc(0em - var(--outer-round-dia));
+    width: var(--outer-round-dia);
+    height: var(--outer-round-dia);
+    border-radius: 50%;
+    box-shadow: -0.15em 0.15em 0 0 var(--tab-color);
+    z-index: -1;
+
+    transition: box-shadow ease 250ms;
+}
+
+#nav_bar ul li::after {
+    content: '';
+    background-color: transparent;
+    position: absolute;
+    top: calc(3vh - var(--outer-round-dia));
+    right: 45vw;
+    width: var(--outer-round-dia);
+    height: var(--outer-round-dia);
+    border-radius: 50%;
+    box-shadow: 0.15em 0.15em 0 0 var(--tab-color);
+    z-index: -1;
+
+    transition: box-shadow ease 250ms;
+}
+
+/* Nav bar effects */
+#nav_bar ul li.active {
+    background-color: var(--tab-active-color);
+    color: black;
+}
+
+#nav_bar ul li.active::before {
+    box-shadow: -0.15em 0.15em 0 0 var(--tab-active-color);
+}
+
+#nav_bar ul li.active::after {
+    box-shadow: 0.15em 0.15em 0 0 var(--tab-active-color);
+}
+
+#nav_bar ul li:not(.active):hover {
+    background-color: var(--tab-hover-color);
+    color: black;
+}
+
+#nav_bar ul li:not(.active):hover:before {
+    box-shadow: -0.15em 0.15em 0 0 var(--tab-hover-color);
+}
+
+#nav_bar ul li:not(.active):hover::after {
+    box-shadow: 0.15em 0.15em 0 0 var(--tab-hover-color);
+}
+
+/* Main content */
+#main-content {
+    position: relative;
+    background-color: white;
+    width: 100vw;
+    height: 5em;
+    z-index: 2;
+}
+
+#main-content .page-content {
+    width: 100vw;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: absolute;
+    opacity: 0;
+
+    transition: opacity ease 250ms;
+
+}
+
+#main-content .settings {
+    width: 100vw;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-around;
+    align-items: center;
+}
+#main-content .select-config-dropdown-container{
+    position: relative;
+    width: 220px;
+    height: 25px;
+    border: 3px solid orange;
+    border-radius: 0.75em;
+    overflow: hidden;
+
+    transition: height 250ms ease;
+
+}
+#main-content .select-config-dropdown-container .scd-ul-cont {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-evenly;
+    align-items: flex-start;
+}
+
+#main-content .select-config-dropdown-container .select-config-dropdown {
+    list-style: none;
+    margin: 0;
+    padding: 0 0;
+    text-align: center;
+    width: 70%;
+
+    transition: transform ease 250ms, color ease 250ms;
+}
+
+#main-content .select-config-dropdown-container .select-config-dropdown li {
+    height: 15px;
+    line-height: 15px;
+    padding: 5px 0;
+    user-select: none;
+}
+
+#main-content .select-config-dropdown-container.dp-opnd ul{
+    transform: translateY(0) !important;
+}
+/* Select model dropdown pointer animations */
+#main-content .select-config-dropdown-container .scd-pointer {
+    width: 10%;
+    height: 25px;
+    overflow: hidden;
+}
+
+#main-content .select-config-dropdown-container .scd-pointer svg {
+    height: inherit;
+    position: absolute;
+    transform-origin: 9.8px 12.5px;
+    transform: translate(0) rotate(360deg);
+
+    transition: transform ease 250ms;
+}
+
+#main-content .select-config-dropdown-container .arrow-left svg {
+    /* transform-origin: center; */
+    transform: translateY(0) rotate(360deg);
+}
+
+#main-content .select-config-dropdown-container .arrow-down svg {
+    /* transform-origin: center; */
+    transform: translateY(0) rotate(270deg);
+}
+
+#main-content .select-config-dropdown-container .arrow-plus .main-arrow {
+    transform: translateY(0) rotate(45deg);
+}
+
+#main-content .select-config-dropdown-container .arrow-plus .add-arrow {
+    transform: translateY(0) rotate(225deg);
+}
+
+/* Model parameters grid */
+/* 
+#main-content .model-config {
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(3, calc((100vw - var(--grid-spacing) * 2) / 3));
+    grid-template-rows: repeat(4, 10vw);
+    /* gap: var(--grid-spacing); *//*
+    justify-content: space-around;
+    align-content: space-around;
+    grid-template-areas:
+        "cfg-name cfg-name cfg-name"
+        "model-cfg dataset-cfg oth-cfg-tittle"
+        "model-type tr-imgs-ts-imgs oth-cfg"
+        "weights-path tr-masks-ts-imgs oth-cfg2"
+        "classes valid-imgs oth-cfg3"
+        "classes-colors valid-masks oth-cfg-4";
+}
+
+#main-content .cfg-name,
+#main-content .col-tittle {
+    margin: 0;
+    background-color: blue;
+    border-radius: 50px;
+}
+
+#main-content .model-config div {
+    background-color: red;
+    border-radius: 50px;
+}
+
+#main-content .model-config .cfg-name {
+    grid-area: cfg-name;
+}
+
+#main-content .model-config .mdl-cfg-tittle {
+    grid-area: model-cfg;
+}
+
+#main-content .model-config .sel-mdl-dp-cont {
+    grid-area: model-type;
+}
+
+#main-content .model-config .mdl-wg-path-mgr-cont {
+    grid-area: weights-path;
+}
+
+#main-content .model-config .dtst-cfg-tittle {
+    grid-area: dataset-cfg;
+}
+
+#main-content .model-config .dtst-tr-img-path-mgr-cont {
+    grid-area: tr-imgs-ts-imgs;
+}
+
+#main-content .model-config .dtst-tr-masks-path-mgr-cont {
+    grid-area: tr-masks-ts-imgs;
+}
+
+#main-content .model-config .tr-setts-cfg-tittle {
+    grid-area: oth-cfg-tittle;
+}
+
+#main-content .model-config .tr-ep-field-cont {
+    grid-area: oth-cfg / oth-cfg / oth-cfg2 / oth-cfg2;
+} */
+
+/* Training content */
+
+#train-content.active {
+    opacity: 1;
+}
+
+/* Testing content */
+
+#test-content.active {
+    opacity: 1;
+}

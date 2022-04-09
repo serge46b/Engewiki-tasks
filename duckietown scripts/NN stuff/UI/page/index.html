@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="./styles.css" />
+    <title>NN stuff UI</title>
+</head>
+
+<body>
+    <div id="nav_bar">
+        <ul>
+            <li class="active" id="train_nav_tab">Train model</li>
+            <li id="test_nav_tab">Test model</li>
+        </ul>
+    </div>
+    <div id="main-content">
+        <div class="active page-content" id="train-content">
+            <h2 class="state-bar">State: awaiting settings</h2>
+            <div class="settings training-settings">
+                <div class="select-config-dropdown-container">
+                    <div class="scd-ul-cont">
+                        <style class="dp-add-styles">
+                        </style>
+                        <ul class="select-config-dropdown dp-content">
+                            <li>ADD MODEL</li>
+                            <li>CUSTOM SETTINGS</li>
+                        </ul>
+                        <div class="scd-pointer dp-pointer arrow-left">
+                            <svg class="main-arrow" viewBox="0 0 24 24">
+                                <path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12l4.58-4.59z" />
+                            </svg>
+                            <svg class="add-arrow" viewBox="0 0 24 24">
+                                <path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12l4.58-4.59z" />
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+                <!-- <div class="model-config tm-config">
+                    <h2 class="cfg-name">el1</h2>
+                    <h3 class="mdl-cfg-tittle col-tittle">Model configuration</h3>
+                    <div class="sel-mdl-dp-container dropdown-container">el2</div>
+                    <div class="mdl-wg-path-mgr-cont path-manager-container">el3</div>
+                    <h3 class="dtst-cfg-tittle col-tittle">Data paths configuration</h3>
+                    <div class="dtst-tr-img-path-mgr-cont path-manager-container">el4</div>
+                    <div class="dtst-tr-masks-path-mgr-cont path-manager-container">el5</div>
+                    <h3 class="tr-setts-cfg-tittle col-tittle">Other train settings</h3>
+                    <div class="tr-ep-field-cont data-field-container">el6</div>
+                </div> -->
+            </div>
+        </div>
+        <div class="page-content" id="test-content">
+            <h2 class="state-bar">State: awaiting settings</h2>
+            <div class="settings training-settings">
+
+            </div>
+        </div>
+    </div>
+
+
+    <script src="http://code.jquery.com/jquery-1.7.1.min.js"></script>
+    <script src="./script.js"></script>
+</body>
+
+</html>

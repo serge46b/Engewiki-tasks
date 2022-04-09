@@ -24,7 +24,9 @@ import random
 import navigator
 
 # env = DuckietownEnv(map_name="udem1_empty", domain_rand=False, style="segmentation")
-env = DuckietownEnv(map_name="udem1", domain_rand=False, style="photos")
+# env = DuckietownEnv(map_name="udem1", domain_rand=False, style="photos")
+# env = DuckietownEnv(map_name="udem1", domain_rand=True, style="photos")
+env = DuckietownEnv(map_name="loop_pedestrians", domain_rand=True, style="photos")
 env.reset()
 env.render()
 
@@ -345,19 +347,27 @@ def update(dt):
     border_lines_mask = cv2.inRange(seg_img, (250, 250, 250), (255, 255, 255))
     middle_lines_mask = cv2.inRange(seg_img, (0, 250, 250), (5, 255, 255))
     crossroad_lines_mask = cv2.inRange(seg_img, (0, 0, 250), (5, 5, 255))
+    pedestrian_mask = cv2.inRange(seg_img, (220, 110, 95), (230, 120, 105))
 
     brd_ln_fn_mask = np.zeros_like(seg_img)
-    brd_ln_fn_mask[:] = (255, 255, 0)
+    # brd_ln_fn_mask[:] = (1, 1, 1)
+    brd_ln_fn_mask[:] = (255, 255, 255)
     brd_ln_fn_mask = cv2.bitwise_and(brd_ln_fn_mask, brd_ln_fn_mask, mask=border_lines_mask)
     cv2.imshow("brd_with_mask", cv2.add(img, brd_ln_fn_mask))
     mdl_ln_fn_mask = np.zeros_like(seg_img)
-    mdl_ln_fn_mask[:] = (0, 125, 255)
+    # mdl_ln_fn_mask[:] = (2, 2, 2)
+    mdl_ln_fn_mask[:] = (0, 255, 255)
     mdl_ln_fn_mask = cv2.bitwise_and(mdl_ln_fn_mask, mdl_ln_fn_mask, mask=middle_lines_mask)
     crsrd_ln_fn_mask = np.zeros_like(seg_img)
-    crsrd_ln_fn_mask[:] = (255, 0, 255)
+    # crsrd_ln_fn_mask[:] = (3, 3, 3)
+    crsrd_ln_fn_mask[:] = (0, 0, 255)
     crsrd_ln_fn_mask = cv2.bitwise_and(crsrd_ln_fn_mask, crsrd_ln_fn_mask, mask=crossroad_lines_mask)
+    ped_fn_mask = np.zeros_like(seg_img)
+    # ped_fn_mask[:] = (4, 4, 4)
+    ped_fn_mask[:] = (226, 117, 100)
+    ped_fn_mask = cv2.bitwise_and(ped_fn_mask, ped_fn_mask, mask=pedestrian_mask)
 
-    final_mask = cv2.add(cv2.add(brd_ln_fn_mask, mdl_ln_fn_mask), crsrd_ln_fn_mask)
+    final_mask = cv2.add(cv2.add(cv2.add(brd_ln_fn_mask, ped_fn_mask), mdl_ln_fn_mask), crsrd_ln_fn_mask)
 
     cv2.imshow("final mask", final_mask)
 
@@ -378,6 +388,7 @@ def update(dt):
         print("done!")
         env.reset()
         env.render()
+        next_move = "left"
 
     if counter // 20 > max_dataset_count:
         dataset_done = True
