@@ -1,0 +1,43 @@
+Code optimization
+Fixed file: graphics.py (full path: H:\large projects\Engewiki-tasks\Duckie town\gym-duckietown\src\gym_duckietown\graphics.py)
+
+changes:
+ get_texture function:
+     21-34:
+            "paths = get_texture_file(tex_name)
+
+            if rng:
+                path_idx = rng.randint(0, len(paths))
+                path = paths[path_idx]
+            else:
+                path = paths[0]
+
+            oldpath = path
+            if segment:
+                path += ".SEGMENTED"
+            Texture.tex_name_cache[tex_name] = path
+            if path not in Texture.tex_cache:
+                Texture.tex_cache[path] = Texture(load_texture(oldpath, segment), tex_name=tex_name, rng=rng)"
+     ->
+     21-37:
+         "if tex_name not in Texture.tex_name_cache:
+            paths = get_texture_file(tex_name)
+
+            if rng:
+                path_idx = rng.randint(0, len(paths))
+                path = paths[path_idx]
+            else:
+                path = paths[0]
+
+            oldpath = path
+            if segment:
+                path += ".SEGMENTED"
+            Texture.tex_name_cache[tex_name] = path
+            if path not in Texture.tex_cache:
+                Texture.tex_cache[path] = Texture(load_texture(oldpath, segment), tex_name=tex_name, rng=rng)
+        else:
+            path = Texture.tex_name_cache[tex_name]"
+ Texture class declaration:
+    48-49: "" -> "tex_name_cache = {}"
+
+note: fixes above optimized simulator. Previous rate: 1-2 steps per second; Now this value increased to 5-10 steps per second.

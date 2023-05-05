@@ -1,0 +1,7 @@
+fixed:
+ simulator.py (full path: gym-duckietown\src\gym_duckietown\simulator.py)
+
+fixes:
+ simulator.py:
+  635: rng = self.np_random if self.domain_rand else None -> rng = None
+  note: this fix texture flickering on segmented image with domain_rand = True

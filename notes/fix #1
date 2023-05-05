@@ -1,0 +1,11 @@
+Fixed:
+ objmesh.py (full path: gym-duckietown\src\gym_duckietown\objmesh.py)
+ graphics.py (full path: gym-duckietown\src\gym_duckietown\graphics.py)
+
+fixes:
+ objmesh.py:
+  266: return_segment_into_color -> return tuple(segment_into_color)
+  this is need to change list type to tuple type (because "graphics.py 69: @iru_cache(maxsize:None)" don't work with lists (lists use function below) )
+
+original answer:
+    https://stackoverflow.com/questions/49210801/python3-pass-lists-to-function-with-functools-lru-cache

@@ -1,15 +1,10 @@
 #!/usr/bin/env python
-# manual
 
-"""
-This script allows you to manually control the simulator or Duckiebot
-using the keyboard arrows.
-"""
 import copy
-import glob
-
+from datetime import datetime
+import random
+import cv2
 from PIL import Image
-import argparse
 import sys
 
 import gym
@@ -17,14 +12,19 @@ import numpy as np
 import pyglet
 from pyglet.window import key
 
-from gym_duckietown.envs import DuckietownEnv
-import cv2
-
-import random
 import navigator
 
-# env = DuckietownEnv(map_name="udem1_empty", domain_rand=False, style="segmentation")
-env = DuckietownEnv(map_name="udem1", domain_rand=False, style="photos")
+from gym_duckietown.envs import DuckietownEnv
+from keras_segmentation.models.segnet import segnet
+from keras_segmentation.predict import visualize_segmentation
+model = segnet(n_classes=2, input_height=480, input_width=640)
+path = "H:/some_files/engewiki duckietown NN course/keras segmentation data/"
+model_name = "segnet_dt_big_dataset"
+model.load_weights(path + "tmp/" + model_name + "/weights/" + model_name + "_weights")
+classes = ["Other", "RoadMark"]
+
+env = gym.make("Duckietown-udem1-v0")
+# env = DuckietownEnv(map_name="TTIC_large_loop")
 env.reset()
 env.render()
 
@@ -33,6 +33,7 @@ navi = navigator.Navi(graph)
 
 @env.unwrapped.window.event
 def on_key_press(symbol, modifiers):
+    global prev_delta
     """
     This handler processes keyboard commands that
     control the simulation
@@ -40,6 +41,7 @@ def on_key_press(symbol, modifiers):
 
     if symbol == key.BACKSPACE or symbol == key.SLASH:
         print("RESET")
+        prev_delta = 0
         env.reset()
         env.render()
     elif symbol == key.PAGEUP:
@@ -47,18 +49,22 @@ def on_key_press(symbol, modifiers):
     elif symbol == key.ESCAPE:
         env.close()
         sys.exit(0)
-
-    # Take a screenshot
-    # UNCOMMENT IF NEEDED - Skimage dependency
-    # elif symbol == key.RETURN:
-    #     print('saving screenshot')
-    #     img = env.render('rgb_array')
-    #     save_img('screenshot.png', img)
+    elif symbol == key.RETURN:
+        print('saving screenshot')
+        img = env.render('rgb_array')
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+        cv2.imwrite('screenshot ' + str(datetime.now().minute) + " " + str(datetime.now().second) + '.jpg', img)
 
 
 # Register a keyboard handler
 key_handler = key.KeyStateHandler()
 env.unwrapped.window.push_handlers(key_handler)
+
+prev_delta = 0
+prev_step = 0
+flag = 0
+next_move = "forward"
+edge_line_flag = 0
 
 
 def pd_driver(obs, unwrapped_env):
@@ -84,17 +90,17 @@ def pd_driver(obs, unwrapped_env):
     if key_handler[key.LSHIFT]:
         action *= 1.5
 
-    img_right = cv2.cvtColor(obs, cv2.COLOR_BGR2RGB)
+    img_right = obs  # cv2.cvtColor(obs, cv2.COLOR_BGR2RGB)
     img_left = copy.deepcopy(img_right)
     img_right = img_right[250:, 300:, :]
     img_left = img_left[160:300, :340, :]
 
-    mask = cv2.inRange(img_right, (250, 250, 250), (255, 255, 255))
+    mask = cv2.inRange(img_right, (22, 75, 82), (255, 255, 255))
     cv2.imshow("mask", mask)
-    left_mask = cv2.inRange(img_left, (0, 0, 250), (5, 5, 255))
+    """left_mask = cv2.inRange(img_left, (20, 20, 70), (50, 50, 170))
     cv2.imshow("left mask", left_mask)
-    red_mask = cv2.inRange(img_right, (0, 0, 250), (5, 5, 255))
-    cv2.imshow("red mask", red_mask)
+    red_mask = cv2.inRange(img_right, (20, 20, 70), (50, 50, 170))
+    cv2.imshow("red mask", red_mask)"""
 
     edges = cv2.Canny(mask, 50, 150, apertureSize=5)
     cv2.imshow("edges", edges)
@@ -274,36 +280,11 @@ def pd_driver(obs, unwrapped_env):
     return action
 
 
-max_dataset_count = 1005
-max_num = 0
-counter = 0
-dataset_done = False
-for name in glob.glob("images/*.png"):
-    num = ""
-    for s in name:
-        if s.isnumeric():
-            num += s
-    num = int(num)
-    if max_num < num:
-        max_num = num
-if max_num > max_dataset_count:
-    dataset_done = True
-else:
-    counter = max_num * 20
-obs = np.uint8(np.zeros((480, 640, 3)))
-prev_delta = 0
-prev_step = 0
-flag = 0
-next_move = "forward"
-edge_line_flag = 0
+observ = np.uint8(np.zeros((480, 640, 3)))
 
 
 def update(dt):
-    global counter, prev_step, obs, flag, dataset_done
-    """
-    This function is called at every frame to handle
-    movement/stepping and redrawing
-    """
+    global counter, prev_step, observ, flag, dataset_done
     wheel_distance = 0.102
     min_rad = 0.08
 
@@ -319,7 +300,6 @@ def update(dt):
         action -= np.array([0, 1])
     if key_handler[key.SPACE]:
         action = np.array([0, 0])
-
     v1 = action[0]
     v2 = action[1]
     # Limit radius of curvature
@@ -336,74 +316,48 @@ def update(dt):
     if key_handler[key.LSHIFT]:
         action *= 1.5
 
-    # seg_obs = env.render_obs(segment=True)
-    seg_obs = env.render_obs(segment=True)
+    env.step(action)
 
-    img = cv2.cvtColor(obs, cv2.COLOR_BGR2RGB)
-    seg_img = cv2.cvtColor(seg_obs, cv2.COLOR_BGR2RGB)
+    img = cv2.cvtColor(observ, cv2.COLOR_BGR2RGB)
+    pred = model.predict_segmentation(
+        inp=img,
+        out_fname=None
+    )
 
-    border_lines_mask = cv2.inRange(seg_img, (250, 250, 250), (255, 255, 255))
-    middle_lines_mask = cv2.inRange(seg_img, (0, 250, 250), (5, 255, 255))
-    crossroad_lines_mask = cv2.inRange(seg_img, (0, 0, 250), (5, 5, 255))
-    pedestrian_mask = cv2.inRange(seg_img, (220, 110, 95), (230, 120, 105))
+    pred_img = visualize_segmentation(pred, img, n_classes=model.n_classes,
+                                     colors=[(0, 0, 0), (255, 255, 255)], overlay_img=False,
+                                     show_legends=False,
+                                     class_names=classes,
+                                     prediction_width=None,
+                                     prediction_height=None).astype("uint8")
 
-    brd_ln_fn_mask = np.zeros_like(seg_img)
-    # brd_ln_fn_mask[:] = (1, 1, 1)
-    brd_ln_fn_mask[:] = (255, 255, 255)
-    brd_ln_fn_mask = cv2.bitwise_and(brd_ln_fn_mask, brd_ln_fn_mask, mask=border_lines_mask)
-    cv2.imshow("brd_with_mask", cv2.add(img, brd_ln_fn_mask))
-    mdl_ln_fn_mask = np.zeros_like(seg_img)
-    # mdl_ln_fn_mask[:] = (2, 2, 2)
-    mdl_ln_fn_mask[:] = (0, 255, 255)
-    mdl_ln_fn_mask = cv2.bitwise_and(mdl_ln_fn_mask, mdl_ln_fn_mask, mask=middle_lines_mask)
-    crsrd_ln_fn_mask = np.zeros_like(seg_img)
-    # crsrd_ln_fn_mask[:] = (3, 3, 3)
-    crsrd_ln_fn_mask[:] = (0, 0, 255)
-    crsrd_ln_fn_mask = cv2.bitwise_and(crsrd_ln_fn_mask, crsrd_ln_fn_mask, mask=crossroad_lines_mask)
-    ped_fn_mask = np.zeros_like(seg_img)
-    # ped_fn_mask[:] = (4, 4, 4)
-    ped_fn_mask[:] = (226, 117, 100)
-    ped_fn_mask = cv2.bitwise_and(ped_fn_mask, ped_fn_mask, mask=pedestrian_mask)
+    # gray_img = cv2.cvtColor(pred_img, cv2.COLOR_RGB2GRAY)
 
-    final_mask = cv2.add(cv2.add(cv2.add(brd_ln_fn_mask, ped_fn_mask), mdl_ln_fn_mask), crsrd_ln_fn_mask)
-
-    cv2.imshow("final mask", final_mask)
-
-    cv2.imshow("image", img)
-    cv2.imshow("segment", seg_img)
-
-    print(counter // 20)
-    counter += 1
-    if counter % 20 == 0:
-        cv2.imwrite("images/img." + str(counter // 20) + ".png", img)
-        cv2.imwrite("masks/img." + str(counter // 20) + ".png", final_mask)
+    cv2.imshow("prediction", pred_img)
 
     if key_handler[key.F]:
-        action = pd_driver(seg_obs, env.unwrapped)
-    obs, reward, done, info = env.step(action)
+        action = pd_driver(pred_img, env.unwrapped)
+    observ, reward, done, info = env.step(action)
+
+    # white_mask = cv2.inRange(cutted_image, (10, 29, 77), (101, 84, 171))
+    # cv2.imshow("white mask", white_mask)
+
+    if key_handler[key.RETURN]:
+        im = Image.fromarray(observ)
+        im.save("pic.png")
 
     if done:
         print("done!")
+        flag = 0
         env.reset()
         env.render()
-        next_move = "left"
-
-    if counter // 20 > max_dataset_count:
-        dataset_done = True
-
-    if dataset_done:
-        print("dataset is done!")
-        env.close()
-        sys.exit(0)
 
     env.render()
-
 
 
 pyglet.clock.schedule_interval(update, 1.0 / env.unwrapped.frame_rate)
 
 # Enter main event loop
 pyglet.app.run()
-
 
 env.close()

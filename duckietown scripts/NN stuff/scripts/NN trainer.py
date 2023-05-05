@@ -1,20 +1,25 @@
-import os
-os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
+# import os
+# os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
+
 model_name = input("Enter model name: ")
 if model_name == "vgg_unet":
     from keras_segmentation.models.unet import vgg_unet
     model = vgg_unet(n_classes=50, input_height=320, input_width=640)
-elif model_name == "vgg_unet_dt" or model_name == "vgg_unet_dt_mid_dataset" or model_name == "vgg_unet_dt_big_dataset" \
-        or model_name == "vgg_unet_dt_mid_dataset_dt4" or model_name == "vgg_unet_dt_big_dataset_dt5":
+elif model_name.startswith("vgg_unet"):
     from keras_segmentation.models.unet import vgg_unet
-    model = vgg_unet(n_classes=2, input_height=480, input_width=640)
-elif model_name == "segnet_dt" or model_name == "segnet_dt_mid_dataset" or model_name == "segnet_dt_big_dataset"\
-        or model_name == "segnet_dt_mid_dataset_dt4" or model_name == "segnet_dt_big_dataset_dt5":
+    if "mdt" in model_name:
+        model = vgg_unet(n_classes=4, input_height=480, input_width=640)
+    else:
+        model = vgg_unet(n_classes=2, input_height=480, input_width=640)
+elif model_name.startswith("segnet"):
     from keras_segmentation.models.segnet import segnet
-    model = segnet(n_classes=2, input_height=480, input_width=640)
-elif model_name == "densenet121_unet_dt" or model_name == "densenet121_unet_dt_big_dataset":
-    from keras_segmentation.models.unet import densenet_unet
-    model = densenet_unet(n_classes=2, input_height=480, input_width=640)
+    if "mdt" in model_name:
+        model = segnet(n_classes=4, input_height=480, input_width=640)
+    else:
+        model = segnet(n_classes=2, input_height=480, input_width=640)
+# elif model_name == "densenet121_unet_dt" or model_name == "densenet121_unet_dt_big_dataset":
+#     from keras_segmentation.models.unet import densenet_unet
+#     model = densenet_unet(n_classes=2, input_height=480, input_width=640)
 else:
     raise Exception("UnknownModelError")
 
@@ -39,8 +44,8 @@ model.train(
     train_images=train_images_path,
     train_annotations=train_masks_path,
     checkpoints_path=path + "tmp/" + model_name + "/checkpoints/" + model_name,
-    # epochs=5
-    epochs=2
+    epochs=10
+    # epochs=2
 )
 
 # model.save(path + "tmp/" + model_name)
