@@ -25,6 +25,7 @@ import navigator
 
 # env = DuckietownEnv(map_name="udem1_empty", domain_rand=False, style="segmentation")
 env = DuckietownEnv(map_name="udem1", domain_rand=False, style="photos")
+# env = DuckietownEnv(map_name="loop_pedestrians_my", domain_rand=False, style="photos")
 env.reset()
 env.render()
 
@@ -274,7 +275,7 @@ def pd_driver(obs, unwrapped_env):
     return action
 
 
-max_dataset_count = 1005
+max_dataset_count = 1000
 max_num = 0
 counter = 0
 dataset_done = False
@@ -337,6 +338,7 @@ def update(dt):
         action *= 1.5
 
     # seg_obs = env.render_obs(segment=True)
+
     seg_obs = env.render_obs(segment=True)
 
     img = cv2.cvtColor(obs, cv2.COLOR_BGR2RGB)
@@ -388,7 +390,6 @@ def update(dt):
         sys.exit(0)
 
     env.render()
-
 
 
 pyglet.clock.schedule_interval(update, 1.0 / env.unwrapped.frame_rate)

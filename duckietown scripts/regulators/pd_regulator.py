@@ -210,6 +210,7 @@ def update(dt):
         ey2 = sample_lines[1][1] - edge_line[0][1][1]
 
         delta = ((ex1 + ex2) - (ey1 + ey2))
+        print(delta)
     else:
         delta = -175
 
