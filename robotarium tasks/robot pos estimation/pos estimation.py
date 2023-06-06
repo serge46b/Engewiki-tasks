@@ -22,7 +22,8 @@ root = "./"
 
 calibrate_camera = False
 calib_imgs_path = root + "imgs/"
-aruco_dict = aruco.getPredefinedDictionary(aruco.DICT_6X6_1000)
+aruco_dict = aruco.getPredefinedDictionary(aruco.DICT_4X4_1000)
+arucoParams = aruco.DetectorParameters_create()
 markerLength = 3.75
 markerSeparation = 0.5
 DISPLAY_IMG_HEIGHT = 700
@@ -31,7 +32,7 @@ camera = cv2.VideoCapture(1, apiPreference=cv2.CAP_ANY, params=[
     cv2.CAP_PROP_FRAME_HEIGHT, 720])
 ret, img = camera.read()
 
-with open('/robotarium tasks/robot pos estimation/calibration.yaml') as f:
+with open(root + 'calibration.yaml') as f:
     loadeddict = yaml.safe_load(f)
 mtx = loadeddict.get('camera_matrix')
 dist = loadeddict.get('dist_coeff')
