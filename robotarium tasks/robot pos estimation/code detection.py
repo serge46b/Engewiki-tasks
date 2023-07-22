@@ -6,7 +6,7 @@ from PIL import Image
 
 # loading images
 image_sequence = []
-for img_path in glob("./imgs/*.png"):
+for img_path in glob("imgs_old/*.png"):
     image_sequence.append(Image.open(img_path).convert("RGB"))
 
 # aruco init
